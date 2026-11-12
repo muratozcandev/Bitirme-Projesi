@@ -1,8 +1,10 @@
-class LegalTexts { // LegalTexts veri/yardımcı sınıfını tanımlar
-  LegalTexts._(); // İlgili kod satırını ve işlemi yürütür
+// Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni içeriklerini barındırır.
 
-  static const String userAgreementTitle = '7v7 Kullanıcı Sözleşmesi'; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  static const String kvkkTitle = 'KVKK Aydınlatma Metni'; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+class LegalTexts {
+  LegalTexts._();
+
+  static const String userAgreementTitle = '7v7 Kullanıcı Sözleşmesi';
+  static const String kvkkTitle = 'KVKK Aydınlatma Metni';
 
   static const String userAgreementContent = '''
 7v7 HALISHA MAÇ ORGANİZASYON UYGULAMASI KULLANICI SÖZLEŞMESİ (ÖRNEK TASLAK METİN)
@@ -28,7 +30,7 @@ class LegalTexts { // LegalTexts veri/yardımcı sınıfını tanımlar
 
 5. YÜRÜRLÜK
 Kullanıcı, kayıt ekranındaki "Sözleşmeyi okudum ve anladım" kutucuğunu işaretleyerek işbu sözleşme hükümlerini okuduğunu ve kabul ettiğini beyan eder.
-'''; // Çok satırlı metin/SQL bloğunu kapatır
+''';
 
   static const String kvkkContent = '''
 6698 SAYILI KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) KAPSAMINDA AYDINLATMA METNİ (ÖRNEK TASLAK METİN)
@@ -58,6 +60,5 @@ Bu test sürümünde tüm verileriniz cihaz üzerindeki yerel SQLite veritabanı
 
 5. İLGİLİ KİŞİNİN HAKLARI (KVKK MADDE 11)
 KVKK'nın 11. maddesi uyarınca kişisel verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme haklarına sahipsiniz.
-'''; // Çok satırlı metin/SQL bloğunu kapatır
-} // Açık olan kod/bileşen bloğunu kapatır
-
+''';
+}

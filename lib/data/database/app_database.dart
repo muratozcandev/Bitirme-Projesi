@@ -1,64 +1,65 @@
-import 'dart:io'; // İşletim sistemi ve dosya işlemleri kütüphanesini içe aktarır
-import 'package:flutter/foundation.dart'; // Flutter temel platform ve debug yardımcılarını içe aktarır
-import 'package:path/path.dart' as p; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // SQLite yerel veritabanı sürücüsünü içe aktarır
-import '../seed/seed_data.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+// Yerel SQLite veritabanı tablolarının oluşturulmasını ve bağlantısını yönetir.
 
-class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
-  static AppDatabase? _instance; // İlgili kod satırını ve işlemi yürütür
-  Database? _db; // İlgili kod satırını ve işlemi yürütür
-  final String? customPath; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../seed/seed_data.dart';
 
-  AppDatabase._({this.customPath}); // İlgili kod satırını ve işlemi yürütür
+class AppDatabase {
+  static AppDatabase? _instance;
+  Database? _db;
+  final String? customPath;
 
-  static AppDatabase get instance { // İlgili kod satırını ve işlemi yürütür
-    _instance ??= AppDatabase._(); // İlgili kod satırını ve işlemi yürütür
-    return _instance!; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  AppDatabase._({this.customPath});
 
-  /// Birim ve entegrasyon testlerinde bağımsız bellek içi veritabanı oluşturmak için
-  factory AppDatabase.forTesting(String dbName) { // İlgili kod satırını ve işlemi yürütür
-    return AppDatabase._(customPath: inMemoryDatabasePath); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  static AppDatabase get instance {
+    _instance ??= AppDatabase._();
+    return _instance!;
+  }
 
-  Future<Database> get database async { // İlgili kod satırını ve işlemi yürütür
-    if (_db != null && _db!.isOpen) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      return _db!; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-    } // Açık olan kod/bileşen bloğunu kapatır
-    _db = await _initDatabase(); // İlgili kod satırını ve işlemi yürütür
-    return _db!; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  factory AppDatabase.forTesting(String dbName) {
+    return AppDatabase._(customPath: inMemoryDatabasePath);
+  }
 
-  Future<Database> _initDatabase() async { // İlgili kod satırını ve işlemi yürütür
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      sqfliteFfiInit(); // İlgili kod satırını ve işlemi yürütür
-      databaseFactory = databaseFactoryFfi; // İlgili kod satırını ve işlemi yürütür
-    } // Açık olan kod/bileşen bloğunu kapatır
+  Future<Database> get database async {
+    if (_db != null && _db!.isOpen) {
+      return _db!;
+    }
+    _db = await _initDatabase();
+    return _db!;
+  }
 
-    final String dbPath; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (customPath != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      dbPath = customPath!; // İlgili kod satırını ve işlemi yürütür
-    } else { // Koşul sağlanmadığında çalışacak alternatif bloğu başlatır
-      final databasesPath = await getDatabasesPath(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-      dbPath = p.join(databasesPath, 'hali_saha_7v7.db'); // İlgili kod satırını ve işlemi yürütür
-    } // Açık olan kod/bileşen bloğunu kapatır
+  Future<Database> _initDatabase() async {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
 
-    final db = await openDatabase( // SQLite veritabanı dosyasını açar ve ilk kurulum kancalarını tanımlar
-      dbPath, // İlgili kod satırını ve işlemi yürütür
-      version: 1, // version özelliğini yapılandırır
-      onCreate: (db, version) async { // onCreate özelliğini yapılandırır
-        await _createTables(db); // Asenkron işlemin tamamlanmasını bekler
-        await _seedInitialUsers(db); // Asenkron işlemin tamamlanmasını bekler
-      }, // Açık olan kod/bileşen bloğunu kapatır
-      onOpen: (db) async { // onOpen özelliğini yapılandırır
-        await _seedInitialUsers(db); // Asenkron işlemin tamamlanmasını bekler
-      }, // Açık olan kod/bileşen bloğunu kapatır
-    ); // Açık olan kod/bileşen bloğunu kapatır
+    final String dbPath;
+    if (customPath != null) {
+      dbPath = customPath!;
+    } else {
+      final databasesPath = await getDatabasesPath();
+      dbPath = p.join(databasesPath, 'hali_saha_7v7.db');
+    }
 
-    return db; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+    final db = await openDatabase(
+      dbPath,
+      version: 1,
+      onCreate: (db, version) async {
+        await _createTables(db);
+        await _seedInitialUsers(db);
+      },
+      onOpen: (db) async {
+        await _seedInitialUsers(db);
+      },
+    );
 
-  Future<void> _createTables(Database db) async { // İlgili kod satırını ve işlemi yürütür
+    return db;
+  }
+
+  Future<void> _createTables(Database db) async {
     await db.execute('''
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
@@ -71,7 +72,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         themeMode TEXT NOT NULL DEFAULT 'light',
         createdAt TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE consents (
@@ -82,7 +83,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         accepted INTEGER NOT NULL,
         acceptedAt TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE teams (
@@ -98,7 +99,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         createdAt TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'active'
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE team_members (
@@ -110,7 +111,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         role TEXT NOT NULL,
         joinedAt TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE matches (
@@ -123,7 +124,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         startTime TEXT NOT NULL,
         endTime TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE invitations (
@@ -136,7 +137,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         createdAt TEXT NOT NULL,
         respondedAt TEXT
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE messages (
@@ -146,7 +147,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         content TEXT NOT NULL,
         createdAt TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE notifications (
@@ -161,7 +162,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         isRead INTEGER NOT NULL DEFAULT 0,
         createdAt TEXT NOT NULL
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE dismissed_appointments (
@@ -170,7 +171,7 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         dismissedAt TEXT NOT NULL,
         PRIMARY KEY (userId, teamId)
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
+    ''');
 
     await db.execute('''
       CREATE TABLE venues_cache (
@@ -179,25 +180,25 @@ class AppDatabase { // AppDatabase veri/yardımcı sınıfını tanımlar
         venueName TEXT NOT NULL,
         PRIMARY KEY (province, district, venueName)
       )
-    '''); // Çok satırlı metin/SQL bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
+    ''');
+  }
 
-  Future<void> _seedInitialUsers(Database db) async { // İlgili kod satırını ve işlemi yürütür
-    final batch = db.batch(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    for (final user in SeedData.predefinedUsers) { // Koleksiyon veya aralık üzerinde döngü başlatır
-      batch.insert( // SQLite veritabanı tablosuna yeni kayıt ekler
-        'users', // İlgili kod satırını ve işlemi yürütür
-        user.toMap(), // İlgili kod satırını ve işlemi yürütür
-        conflictAlgorithm: ConflictAlgorithm.ignore, // conflictAlgorithm özelliğini yapılandırır
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    await batch.commit(noResult: true); // Asenkron işlemin tamamlanmasını bekler
-  } // Açık olan kod/bileşen bloğunu kapatır
+  Future<void> _seedInitialUsers(Database db) async {
+    final batch = db.batch();
+    for (final user in SeedData.predefinedUsers) {
+      batch.insert(
+        'users',
+        user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
 
-  Future<void> close() async { // İlgili kod satırını ve işlemi yürütür
-    if (_db != null && _db!.isOpen) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      await _db!.close(); // Asenkron işlemin tamamlanmasını bekler
-      _db = null; // İlgili kod satırını ve işlemi yürütür
-    } // Açık olan kod/bileşen bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
-} // Açık olan kod/bileşen bloğunu kapatır
+  Future<void> close() async {
+    if (_db != null && _db!.isOpen) {
+      await _db!.close();
+      _db = null;
+    }
+  }
+}

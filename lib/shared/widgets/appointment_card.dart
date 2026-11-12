@@ -1,335 +1,333 @@
-import 'package:flutter/material.dart'; // Flutter Material tasarım bileşenlerini içe aktarır
-import '../../app/theme/app_theme.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../models/team_member_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../models/team_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+// Randevularım ekranında her bir maç ve takım özetini gösteren kart bileşenidir.
 
-class AppointmentCard extends StatelessWidget { // Durumsuz (Stateless) AppointmentCard görsel bileşenini tanımlar
-  final TeamModel team; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final String currentUserId; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final VoidCallback onDeleteConfirmed; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+import 'package:flutter/material.dart';
+import '../../app/theme/app_theme.dart';
+import '../models/team_member_model.dart';
+import '../models/team_model.dart';
 
-  const AppointmentCard({ // Köşeleri yuvarlatılmış ve gölgeli bilgi kartı kutusu oluşturur
-    super.key, // Üst sınıfın (super) ilgili metodunu veya anahtarını çağırır
-    required this.team, // team parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-    required this.currentUserId, // currentUserId parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-    required this.onDeleteConfirmed, // onDeleteConfirmed parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-  }); // İlgili kod satırını ve işlemi yürütür
+class AppointmentCard extends StatelessWidget {
+  final TeamModel team;
+  final String currentUserId;
+  final VoidCallback onDeleteConfirmed;
 
-  bool get _isCaptain => team.captainId == currentUserId; // İlgili kod satırını ve işlemi yürütür
+  const AppointmentCard({
+    super.key,
+    required this.team,
+    required this.currentUserId,
+    required this.onDeleteConfirmed,
+  });
 
-  String get _userRoleLabel { // İlgili kod satırını ve işlemi yürütür
-    if (_isCaptain) return 'Takım Kaptanı'; // Koşulun sağlanıp sağlanmadığını kontrol eder
-    final myMember = // Sabit/final değişken veya nesne tanımını başlatır
-        team.members.where((m) => m.userId == currentUserId).firstOrNull; // İlgili kod satırını ve işlemi yürütür
-    if (myMember != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      final posLabel = team.formation.labelForKey(myMember.position); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-      return 'Oyuncu ($posLabel)'; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-    } // Açık olan kod/bileşen bloğunu kapatır
-    return 'Takım Üyesi'; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  bool get _isCaptain => team.captainId == currentUserId;
 
-  Future<void> _showDeleteDialog(BuildContext context) async { // İlgili kod satırını ve işlemi yürütür
-    final confirmed = await showDialog<bool>( // Sabit/final değişken veya nesne tanımını başlatır
-      context: context, // context özelliğini yapılandırır
-      builder: (ctx) => AlertDialog( // İlgili kod satırını ve işlemi yürütür
-        title: const Text('Randevuyu Sil'), // Ekrana metin bileşeni yazdırır
-        content: const Text( // Ekrana metin bileşeni yazdırır
-          'Bu maç randevusunu randevu listenizden silmek istediğinize emin misiniz?\n\nNot: Kendi listenizden silmeniz diğer takım oyuncularının randevusunu silmez.', // 'Bu maç randevusunu randevu listenizden silmek istediğinize emin misiniz?\n\nNot özelliğini yapılandırır
-        ), // Açık olan kod/bileşen bloğunu kapatır
-        actions: [ // İlgili kod satırını ve işlemi yürütür
-          TextButton( // Tıklanabilir aksiyon butonunu oluşturur
-            onPressed: () => Navigator.of(ctx).pop(false), // onPressed özelliğini yapılandırır
-            child: const Text('Vazgeç'), // Ekrana metin bileşeni yazdırır
-          ), // Açık olan kod/bileşen bloğunu kapatır
-          ElevatedButton( // Tıklanabilir aksiyon butonunu oluşturur
-            key: const Key('confirm_delete_appointment_btn'), // key özelliğini yapılandırır
-            style: ElevatedButton.styleFrom( // Tıklanabilir aksiyon butonunu oluşturur
-              backgroundColor: AppColors.error, // backgroundColor özelliğini yapılandırır
-              foregroundColor: Colors.white, // foregroundColor özelliğini yapılandırır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            onPressed: () => Navigator.of(ctx).pop(true), // onPressed özelliğini yapılandırır
-            child: const Text('Randevuyu Sil'), // Ekrana metin bileşeni yazdırır
-          ), // Açık olan kod/bileşen bloğunu kapatır
-        ], // Açık olan kod/bileşen bloğunu kapatır
-      ), // Açık olan kod/bileşen bloğunu kapatır
-    ); // Açık olan kod/bileşen bloğunu kapatır
+  String get _userRoleLabel {
+    if (_isCaptain) return 'Takım Kaptanı';
+    final myMember =
+        team.members.where((m) => m.userId == currentUserId).firstOrNull;
+    if (myMember != null) {
+      final posLabel = team.formation.labelForKey(myMember.position);
+      return 'Oyuncu ($posLabel)';
+    }
+    return 'Takım Üyesi';
+  }
 
-    if (confirmed == true) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      onDeleteConfirmed(); // İlgili kod satırını ve işlemi yürütür
-    } // Açık olan kod/bileşen bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
+  Future<void> _showDeleteDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Randevuyu Sil'),
+        content: const Text(
+          'Bu maç randevusunu randevu listenizden silmek istediğinize emin misiniz?\n\nNot: Kendi listenizden silmeniz diğer takım oyuncularının randevusunu silmez.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_delete_appointment_btn'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Randevuyu Sil'),
+          ),
+        ],
+      ),
+    );
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Widget build(BuildContext context) { // Ekranın veya bileşenin görsel arayüz ağacını oluşturur
-    final theme = Theme.of(context); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final slots = team.formation.positions; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final memberByPosition = <String, TeamMemberModel>{ // Sabit/final değişken veya nesne tanımını başlatır
-      for (final m in team.members) m.position: m, // Koleksiyon veya aralık üzerinde döngü başlatır
-    }; // Açık olan kod/bileşen bloğunu kapatır
+    if (confirmed == true) {
+      onDeleteConfirmed();
+    }
+  }
 
-    return Card( // Köşeleri yuvarlatılmış ve gölgeli bilgi kartı kutusu oluşturur
-      child: Padding( // İçindeki bileşenin etrafına iç boşluk (padding) ekler
-        padding: const EdgeInsets.all(16), // padding özelliğini yapılandırır
-        child: Column( // Alt bileşenleri dikey eksende alt alta dizer
-          crossAxisAlignment: CrossAxisAlignment.stretch, // crossAxisAlignment özelliğini yapılandırır
-          children: [ // İlgili kod satırını ve işlemi yürütür
-            // Üst Başlık + Rol Rozeti + Üç Nokta Menüsü
-            Row( // Alt bileşenleri yatay eksende yan yana dizer
-              crossAxisAlignment: CrossAxisAlignment.start, // crossAxisAlignment özelliğini yapılandırır
-              children: [ // İlgili kod satırını ve işlemi yürütür
-                CircleAvatar( // İlgili kod satırını ve işlemi yürütür
-                  radius: 22, // radius özelliğini yapılandırır
-                  backgroundColor: theme.colorScheme.primary, // backgroundColor özelliğini yapılandırır
-                  child: const Icon( // Ekranda vektörel ikon gösterir
-                    Icons.sports_soccer, // İlgili kod satırını ve işlemi yürütür
-                    color: Colors.white, // color özelliğini yapılandırır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                ), // Açık olan kod/bileşen bloğunu kapatır
-                const SizedBox(width: 12), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-                Expanded( // Mevcut boş alanı esnek şekilde dolduran kapsayıcı oluşturur
-                  child: Column( // Alt bileşenleri dikey eksende alt alta dizer
-                    crossAxisAlignment: CrossAxisAlignment.start, // crossAxisAlignment özelliğini yapılandırır
-                    children: [ // İlgili kod satırını ve işlemi yürütür
-                      Text( // Ekrana metin bileşeni yazdırır
-                        '${team.captainName} Takımı (7v7)', // İlgili kod satırını ve işlemi yürütür
-                        style: theme.textTheme.titleMedium?.copyWith( // İlgili kod satırını ve işlemi yürütür
-                          fontWeight: FontWeight.w800, // fontWeight özelliğini yapılandırır
-                        ), // Açık olan kod/bileşen bloğunu kapatır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                      const SizedBox(height: 4), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-                      Wrap( // İlgili kod satırını ve işlemi yürütür
-                        spacing: 6, // spacing özelliğini yapılandırır
-                        runSpacing: 4, // runSpacing özelliğini yapılandırır
-                        children: [ // İlgili kod satırını ve işlemi yürütür
-                          Container( // Boyut, dolgulu alan (padding) ve arka plan dekorasyonu sağlayan kutu oluşturur
-                            padding: const EdgeInsets.symmetric( // İlgili kod satırını ve işlemi yürütür
-                              horizontal: 8, // horizontal özelliğini yapılandırır
-                              vertical: 3, // vertical özelliğini yapılandırır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                            decoration: BoxDecoration( // İlgili kod satırını ve işlemi yürütür
-                              color: _isCaptain // İlgili kod satırını ve işlemi yürütür
-                                  ? AppColors.goldAccent.withValues(alpha: 0.2) // İlgili kod satırını ve işlemi yürütür
-                                  : theme.colorScheme.primaryContainer, //  özelliğini yapılandırır
-                              borderRadius: BorderRadius.circular(8), // borderRadius özelliğini yapılandırır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                            child: Text( // Ekrana metin bileşeni yazdırır
-                              'Rolünüz: $_userRoleLabel', // 'Rolünüz özelliğini yapılandırır
-                              style: TextStyle( // İlgili kod satırını ve işlemi yürütür
-                                fontSize: 11.5, // fontSize özelliğini yapılandırır
-                                fontWeight: FontWeight.w700, // fontWeight özelliğini yapılandırır
-                                color: _isCaptain // İlgili kod satırını ve işlemi yürütür
-                                    ? const Color(0xFFB45309) // İlgili kod satırını ve işlemi yürütür
-                                    : theme.colorScheme.onPrimaryContainer, //  özelliğini yapılandırır
-                              ), // Açık olan kod/bileşen bloğunu kapatır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                          ), // Açık olan kod/bileşen bloğunu kapatır
-                          Container( // Boyut, dolgulu alan (padding) ve arka plan dekorasyonu sağlayan kutu oluşturur
-                            padding: const EdgeInsets.symmetric( // İlgili kod satırını ve işlemi yürütür
-                              horizontal: 8, // horizontal özelliğini yapılandırır
-                              vertical: 3, // vertical özelliğini yapılandırır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                            decoration: BoxDecoration( // İlgili kod satırını ve işlemi yürütür
-                              color: theme.colorScheme.secondaryContainer, // color özelliğini yapılandırır
-                              borderRadius: BorderRadius.circular(8), // borderRadius özelliğini yapılandırır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                            child: Text( // Ekrana metin bileşeni yazdırır
-                              'Diziliş: ${team.formation.label}', // 'Diziliş özelliğini yapılandırır
-                              style: TextStyle( // İlgili kod satırını ve işlemi yürütür
-                                fontSize: 11.5, // fontSize özelliğini yapılandırır
-                                fontWeight: FontWeight.w700, // fontWeight özelliğini yapılandırır
-                                color: theme.colorScheme.onSecondaryContainer, // color özelliğini yapılandırır
-                              ), // Açık olan kod/bileşen bloğunu kapatır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                          ), // Açık olan kod/bileşen bloğunu kapatır
-                        ], // Açık olan kod/bileşen bloğunu kapatır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                    ], // Açık olan kod/bileşen bloğunu kapatır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                ), // Açık olan kod/bileşen bloğunu kapatır
-                PopupMenuButton<String>( // İlgili kod satırını ve işlemi yürütür
-                  key: Key('appointment_menu_${team.id}'), // key özelliğini yapılandırır
-                  tooltip: 'Seçenekler', // tooltip özelliğini yapılandırır
-                  icon: const Icon(Icons.more_vert_rounded), // Ekranda vektörel ikon gösterir
-                  onSelected: (value) { // onSelected özelliğini yapılandırır
-                    if (value == 'delete') { // Koşulun sağlanıp sağlanmadığını kontrol eder
-                      _showDeleteDialog(context); // İlgili kod satırını ve işlemi yürütür
-                    } // Açık olan kod/bileşen bloğunu kapatır
-                  }, // Açık olan kod/bileşen bloğunu kapatır
-                  itemBuilder: (_) => const [ // İlgili kod satırını ve işlemi yürütür
-                    PopupMenuItem<String>( // İlgili kod satırını ve işlemi yürütür
-                      value: 'delete', // value özelliğini yapılandırır
-                      child: Row( // Alt bileşenleri yatay eksende yan yana dizer
-                        children: [ // İlgili kod satırını ve işlemi yürütür
-                          Icon( // Ekranda vektörel ikon gösterir
-                            Icons.delete_outline_rounded, // İlgili kod satırını ve işlemi yürütür
-                            color: AppColors.error, // color özelliğini yapılandırır
-                            size: 20, // size özelliğini yapılandırır
-                          ), // Açık olan kod/bileşen bloğunu kapatır
-                          SizedBox(width: 8), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-                          Text( // Ekrana metin bileşeni yazdırır
-                            'Randevuyu Sil', // İlgili kod satırını ve işlemi yürütür
-                            style: TextStyle( // İlgili kod satırını ve işlemi yürütür
-                              color: AppColors.error, // color özelliğini yapılandırır
-                              fontWeight: FontWeight.w600, // fontWeight özelliğini yapılandırır
-                            ), // Açık olan kod/bileşen bloğunu kapatır
-                          ), // Açık olan kod/bileşen bloğunu kapatır
-                        ], // Açık olan kod/bileşen bloğunu kapatır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                    ), // Açık olan kod/bileşen bloğunu kapatır
-                  ], // Açık olan kod/bileşen bloğunu kapatır
-                ), // Açık olan kod/bileşen bloğunu kapatır
-              ], // Açık olan kod/bileşen bloğunu kapatır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            const SizedBox(height: 12), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-            const Divider(height: 1), // Sabit/final değişken veya nesne tanımını başlatır
-            const SizedBox(height: 12), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final slots = team.formation.positions;
+    final memberByPosition = <String, TeamMemberModel>{
+      for (final m in team.members) m.position: m,
+    };
 
-            // Konum, Tarih ve Saat Bilgileri
-            _InfoRow( // Alt bileşenleri yatay eksende yan yana dizer
-              icon: Icons.location_on_outlined, // icon özelliğini yapılandırır
-              label: 'İl / İlçe:', // label özelliğini yapılandırır
-              value: '${team.province} / ${team.district}', // value özelliğini yapılandırır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            const SizedBox(height: 6), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-            _InfoRow( // Alt bileşenleri yatay eksende yan yana dizer
-              icon: Icons.stadium_outlined, // icon özelliğini yapılandırır
-              label: 'Halı Saha:', // label özelliğini yapılandırır
-              value: team.venueName, // value özelliğini yapılandırır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            const SizedBox(height: 6), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-            Row( // Alt bileşenleri yatay eksende yan yana dizer
-              children: [ // İlgili kod satırını ve işlemi yürütür
-                Expanded( // Mevcut boş alanı esnek şekilde dolduran kapsayıcı oluşturur
-                  child: _InfoRow( // Alt bileşenleri yatay eksende yan yana dizer
-                    icon: Icons.calendar_today_outlined, // icon özelliğini yapılandırır
-                    label: 'Tarih:', // label özelliğini yapılandırır
-                    value: team.formattedDate, // value özelliğini yapılandırır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                ), // Açık olan kod/bileşen bloğunu kapatır
-                Expanded( // Mevcut boş alanı esnek şekilde dolduran kapsayıcı oluşturur
-                  child: _InfoRow( // Alt bileşenleri yatay eksende yan yana dizer
-                    icon: Icons.access_time_rounded, // icon özelliğini yapılandırır
-                    label: 'Saat:', // label özelliğini yapılandırır
-                    value: team.timeSlot, // value özelliğini yapılandırır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                ), // Açık olan kod/bileşen bloğunu kapatır
-              ], // Açık olan kod/bileşen bloğunu kapatır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            const SizedBox(height: 12), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: theme.colorScheme.primary,
+                  child: const Icon(
+                    Icons.sports_soccer,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${team.captainName} Takımı (7v7)',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isCaptain
+                                  ? AppColors.goldAccent.withValues(alpha: 0.2)
+                                  : theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Rolünüz: $_userRoleLabel',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: _isCaptain
+                                    ? const Color(0xFFB45309)
+                                    : theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Diziliş: ${team.formation.label}',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  key: Key('appointment_menu_${team.id}'),
+                  tooltip: 'Seçenekler',
+                  icon: const Icon(Icons.more_vert_rounded),
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _showDeleteDialog(context);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Randevuyu Sil',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
 
-            // Takım Kadrosu (7 Mevki)
-            Text( // Ekrana metin bileşeni yazdırır
-              'Takım Kadrosu (${team.members.length}/7 Dolu)', // İlgili kod satırını ve işlemi yürütür
-              style: theme.textTheme.labelLarge?.copyWith( // İlgili kod satırını ve işlemi yürütür
-                fontWeight: FontWeight.w800, // fontWeight özelliğini yapılandırır
-              ), // Açık olan kod/bileşen bloğunu kapatır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-            const SizedBox(height: 8), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-            Wrap( // İlgili kod satırını ve işlemi yürütür
-              spacing: 6, // spacing özelliğini yapılandırır
-              runSpacing: 6, // runSpacing özelliğini yapılandırır
-              children: slots.map((slot) { // children özelliğini yapılandırır
-                final member = memberByPosition[slot.key]; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-                final hasMember = // Sabit/final değişken veya nesne tanımını başlatır
-                    member != null && member.displayName.trim().isNotEmpty; // İlgili kod satırını ve işlemi yürütür
-                return Container( // Boyut, dolgulu alan (padding) ve arka plan dekorasyonu sağlayan kutu oluşturur
-                  padding: // İlgili kod satırını ve işlemi yürütür
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // Sabit/final değişken veya nesne tanımını başlatır
-                  decoration: BoxDecoration( // İlgili kod satırını ve işlemi yürütür
-                    color: hasMember // İlgili kod satırını ve işlemi yürütür
-                        ? theme.colorScheme.primaryContainer // İlgili kod satırını ve işlemi yürütür
-                            .withValues(alpha: 0.45) // İlgili kod satırını ve işlemi yürütür
-                        : theme.colorScheme.surfaceContainerHighest // İlgili kod satırını ve işlemi yürütür
-                            .withValues(alpha: 0.5), // .withValues(alpha özelliğini yapılandırır
-                    borderRadius: BorderRadius.circular(10), // borderRadius özelliğini yapılandırır
-                    border: Border.all( // İlgili kod satırını ve işlemi yürütür
-                      color: hasMember // İlgili kod satırını ve işlemi yürütür
-                          ? theme.colorScheme.primary.withValues(alpha: 0.35) // İlgili kod satırını ve işlemi yürütür
-                          : theme.colorScheme.outline.withValues(alpha: 0.3), //  özelliğini yapılandırır
-                    ), // Açık olan kod/bileşen bloğunu kapatır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                  child: Row( // Alt bileşenleri yatay eksende yan yana dizer
-                    mainAxisSize: MainAxisSize.min, // mainAxisSize özelliğini yapılandırır
-                    children: [ // İlgili kod satırını ve işlemi yürütür
-                      Icon( // Ekranda vektörel ikon gösterir
-                        hasMember // İlgili kod satırını ve işlemi yürütür
-                            ? Icons.person_rounded // İlgili kod satırını ve işlemi yürütür
-                            : Icons.person_outline_rounded, //  özelliğini yapılandırır
-                        size: 14, // size özelliğini yapılandırır
-                        color: hasMember // İlgili kod satırını ve işlemi yürütür
-                            ? theme.colorScheme.primary // İlgili kod satırını ve işlemi yürütür
-                            : theme.colorScheme.onSurfaceVariant, //  özelliğini yapılandırır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                      const SizedBox(width: 4), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-                      Text( // Ekrana metin bileşeni yazdırır
-                        '${slot.label}: ', // '${slot.label} özelliğini yapılandırır
-                        style: TextStyle( // İlgili kod satırını ve işlemi yürütür
-                          fontSize: 11.5, // fontSize özelliğini yapılandırır
-                          fontWeight: FontWeight.w700, // fontWeight özelliğini yapılandırır
-                          color: theme.colorScheme.onSurfaceVariant, // color özelliğini yapılandırır
-                        ), // Açık olan kod/bileşen bloğunu kapatır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                      Text( // Ekrana metin bileşeni yazdırır
-                        hasMember ? member.displayName : 'Boş', // hasMember ? member.displayName özelliğini yapılandırır
-                        style: TextStyle( // İlgili kod satırını ve işlemi yürütür
-                          fontSize: 11.5, // fontSize özelliğini yapılandırır
-                          fontWeight: // İlgili kod satırını ve işlemi yürütür
-                              hasMember ? FontWeight.w800 : FontWeight.w500, // hasMember ? FontWeight.w800 özelliğini yapılandırır
-                          color: hasMember // İlgili kod satırını ve işlemi yürütür
-                              ? theme.colorScheme.onSurface // İlgili kod satırını ve işlemi yürütür
-                              : theme.colorScheme.onSurfaceVariant, //  özelliğini yapılandırır
-                        ), // Açık olan kod/bileşen bloğunu kapatır
-                      ), // Açık olan kod/bileşen bloğunu kapatır
-                    ], // Açık olan kod/bileşen bloğunu kapatır
-                  ), // Açık olan kod/bileşen bloğunu kapatır
-                ); // Açık olan kod/bileşen bloğunu kapatır
-              }).toList(), // İlgili kod satırını ve işlemi yürütür
-            ), // Açık olan kod/bileşen bloğunu kapatır
-          ], // Açık olan kod/bileşen bloğunu kapatır
-        ), // Açık olan kod/bileşen bloğunu kapatır
-      ), // Açık olan kod/bileşen bloğunu kapatır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
-} // Açık olan kod/bileşen bloğunu kapatır
+            _InfoRow(
+              icon: Icons.location_on_outlined,
+              label: 'İl / İlçe:',
+              value: '${team.province} / ${team.district}',
+            ),
+            const SizedBox(height: 6),
+            _InfoRow(
+              icon: Icons.stadium_outlined,
+              label: 'Halı Saha:',
+              value: team.venueName,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Tarih:',
+                    value: team.formattedDate,
+                  ),
+                ),
+                Expanded(
+                  child: _InfoRow(
+                    icon: Icons.access_time_rounded,
+                    label: 'Saat:',
+                    value: team.timeSlot,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-class _InfoRow extends StatelessWidget { // Durumsuz (Stateless) _InfoRow görsel bileşenini tanımlar
-  final IconData icon; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final String label; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final String value; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+            Text(
+              'Takım Kadrosu (${team.members.length}/7 Dolu)',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: slots.map((slot) {
+                final member = memberByPosition[slot.key];
+                final hasMember =
+                    member != null && member.displayName.trim().isNotEmpty;
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: hasMember
+                        ? theme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.45)
+                        : theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: hasMember
+                          ? theme.colorScheme.primary.withValues(alpha: 0.35)
+                          : theme.colorScheme.outline.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasMember
+                            ? Icons.person_rounded
+                            : Icons.person_outline_rounded,
+                        size: 14,
+                        color: hasMember
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${slot.label}: ',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        hasMember ? member.displayName : 'Boş',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight:
+                              hasMember ? FontWeight.w800 : FontWeight.w500,
+                          color: hasMember
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-  const _InfoRow({ // Alt bileşenleri yatay eksende yan yana dizer
-    required this.icon, // icon parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-    required this.label, // label parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-    required this.value, // value parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-  }); // İlgili kod satırını ve işlemi yürütür
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Widget build(BuildContext context) { // Ekranın veya bileşenin görsel arayüz ağacını oluşturur
-    final theme = Theme.of(context); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    return Row( // Alt bileşenleri yatay eksende yan yana dizer
-      children: [ // İlgili kod satırını ve işlemi yürütür
-        Icon(icon, size: 17, color: theme.colorScheme.primary), // Ekranda vektörel ikon gösterir
-        const SizedBox(width: 6), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-        Text( // Ekrana metin bileşeni yazdırır
-          label, // İlgili kod satırını ve işlemi yürütür
-          style: theme.textTheme.bodySmall?.copyWith( // İlgili kod satırını ve işlemi yürütür
-            fontWeight: FontWeight.w700, // fontWeight özelliğini yapılandırır
-            color: theme.colorScheme.onSurfaceVariant, // color özelliğini yapılandırır
-          ), // Açık olan kod/bileşen bloğunu kapatır
-        ), // Açık olan kod/bileşen bloğunu kapatır
-        const SizedBox(width: 4), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
-        Expanded( // Mevcut boş alanı esnek şekilde dolduran kapsayıcı oluşturur
-          child: Text( // Ekrana metin bileşeni yazdırır
-            value, // İlgili kod satırını ve işlemi yürütür
-            maxLines: 1, // maxLines özelliğini yapılandırır
-            overflow: TextOverflow.ellipsis, // overflow özelliğini yapılandırır
-            style: theme.textTheme.bodyMedium?.copyWith( // İlgili kod satırını ve işlemi yürütür
-              fontWeight: FontWeight.w600, // fontWeight özelliğini yapılandırır
-            ), // Açık olan kod/bileşen bloğunu kapatır
-          ), // Açık olan kod/bileşen bloğunu kapatır
-        ), // Açık olan kod/bileşen bloğunu kapatır
-      ], // Açık olan kod/bileşen bloğunu kapatır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
-} // Açık olan kod/bileşen bloğunu kapatır
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: theme.colorScheme.primary),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,10 +1,11 @@
-class AppException implements Exception { // Uygulama içi özel hata (AppException) sınıfını tanımlar
-  final String message; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final String? code; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+// Uygulama içindeki iş kuralı ve servis hatalarını temsil eden özel hata sınıfıdır.
 
-  const AppException(this.message, {this.code}); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+class AppException implements Exception {
+  final String message;
+  final String? code;
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  String toString() => message; // İlgili kod satırını ve işlemi yürütür
-} // Açık olan kod/bileşen bloğunu kapatır
+  const AppException(this.message, {this.code});
 
+  @override
+  String toString() => message;
+}

@@ -1,27 +1,28 @@
-import '../../../shared/models/invitation_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+// Maç ve takım davet işlemleri için soyut arayüzü tanımlar.
 
-abstract class InvitationRepository { // InvitationRepository soyut arayüz (interface) sınıfını tanımlar
-  Future<InvitationModel> sendInvitation({ // İlgili kod satırını ve işlemi yürütür
-    required String teamId, // İlgili kod satırını ve işlemi yürütür
-    required String senderId, // İlgili kod satırını ve işlemi yürütür
-    required String receiverId, // İlgili kod satırını ve işlemi yürütür
-    required String positionKey, // İlgili kod satırını ve işlemi yürütür
-  }); // İlgili kod satırını ve işlemi yürütür
+import '../../../shared/models/invitation_model.dart';
 
-  Future<InvitationModel> acceptInvitation({ // İlgili kod satırını ve işlemi yürütür
-    required String invitationId, // İlgili kod satırını ve işlemi yürütür
-    required String currentUserId, // İlgili kod satırını ve işlemi yürütür
-  }); // İlgili kod satırını ve işlemi yürütür
+abstract class InvitationRepository {
+  Future<InvitationModel> sendInvitation({
+    required String teamId,
+    required String senderId,
+    required String receiverId,
+    required String positionKey,
+  });
 
-  Future<InvitationModel> rejectInvitation({ // İlgili kod satırını ve işlemi yürütür
-    required String invitationId, // İlgili kod satırını ve işlemi yürütür
-    required String currentUserId, // İlgili kod satırını ve işlemi yürütür
-  }); // İlgili kod satırını ve işlemi yürütür
+  Future<InvitationModel> acceptInvitation({
+    required String invitationId,
+    required String currentUserId,
+  });
 
-  Future<InvitationModel?> getInvitationById(String invitationId); // İlgili kod satırını ve işlemi yürütür
+  Future<InvitationModel> rejectInvitation({
+    required String invitationId,
+    required String currentUserId,
+  });
 
-  Future<List<InvitationModel>> getIncomingInvitations(String userId); // İlgili kod satırını ve işlemi yürütür
+  Future<InvitationModel?> getInvitationById(String invitationId);
 
-  Future<List<InvitationModel>> getOutgoingInvitations(String userId); // İlgili kod satırını ve işlemi yürütür
-} // Açık olan kod/bileşen bloğunu kapatır
+  Future<List<InvitationModel>> getIncomingInvitations(String userId);
 
+  Future<List<InvitationModel>> getOutgoingInvitations(String userId);
+}

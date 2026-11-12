@@ -1,254 +1,256 @@
-import 'package:shared_preferences/shared_preferences.dart'; // Yerel anahtar-değer (SharedPreferences) depolama paketini içe aktarır
-import 'package:uuid/uuid.dart'; // Benzersiz kimlik (UUID) üretici paketi içe aktarır
-import '../../../core/constants/app_constants.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../core/errors/app_exception.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../core/utils/password_hasher.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../core/utils/validators.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../data/database/app_database.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../shared/models/consent_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../../../shared/models/user_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
-import '../domain/auth_repository.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+// Yerel SQLite veritabanı üzerinden kullanıcı giriş ve kayıt işlemlerini yürütür.
 
-class LocalAuthRepository implements AuthRepository { // LocalAuthRepository veri erişim (repository) sınıfını tanımlar
-  final AppDatabase appDatabase; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final SharedPreferences prefs; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-  final Uuid _uuid = const Uuid(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/password_hasher.dart';
+import '../../../core/utils/validators.dart';
+import '../../../data/database/app_database.dart';
+import '../../../shared/models/consent_model.dart';
+import '../../../shared/models/user_model.dart';
+import '../domain/auth_repository.dart';
 
-  LocalAuthRepository({ // İlgili kod satırını ve işlemi yürütür
-    required this.appDatabase, // appDatabase parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-    required this.prefs, // prefs parametresinin dışarıdan zorunlu olarak verilmesini sağlar
-  }); // İlgili kod satırını ve işlemi yürütür
+class LocalAuthRepository implements AuthRepository {
+  final AppDatabase appDatabase;
+  final SharedPreferences prefs;
+  final Uuid _uuid = const Uuid();
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<UserModel?> getCurrentUser() async { // İlgili kod satırını ve işlemi yürütür
-    final activeId = prefs.getString(AppConstants.prefActiveUserIdKey); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (activeId == null || activeId.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      return null; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-    } // Açık olan kod/bileşen bloğunu kapatır
-    return getUserById(activeId); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  LocalAuthRepository({
+    required this.appDatabase,
+    required this.prefs,
+  });
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<UserModel?> getUserById(String userId) async { // İlgili kod satırını ve işlemi yürütür
-    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-      'users', // İlgili kod satırını ve işlemi yürütür
-      where: 'id = ?', // where özelliğini yapılandırır
-      whereArgs: [userId], // whereArgs özelliğini yapılandırır
-      limit: 1, // limit özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    if (rows.isEmpty) return null; // Koşulun sağlanıp sağlanmadığını kontrol eder
-    final baseUser = UserModel.fromMap(rows.first); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    return _attachConsents(db, baseUser); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  @override
+  Future<UserModel?> getCurrentUser() async {
+    final activeId = prefs.getString(AppConstants.prefActiveUserIdKey);
+    if (activeId == null || activeId.isEmpty) {
+      return null;
+    }
+    return getUserById(activeId);
+  }
 
-  Future<UserModel> _attachConsents( // İlgili kod satırını ve işlemi yürütür
-    dynamic db, // İlgili kod satırını ve işlemi yürütür
-    UserModel user, // İlgili kod satırını ve işlemi yürütür
-  ) async { // İlgili kod satırını ve işlemi yürütür
-    final consentRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-      'consents', // İlgili kod satırını ve işlemi yürütür
-      where: 'userId = ? AND accepted = 1', // where özelliğini yapılandırır
-      whereArgs: [user.id], // whereArgs özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    final hasTerms = // Sabit/final değişken veya nesne tanımını başlatır
-        consentRows.any((r) => r['documentType'] == 'user_agreement'); // İlgili kod satırını ve işlemi yürütür
-    final hasKvkk = consentRows.any((r) => r['documentType'] == 'kvkk'); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    return user.copyWith( // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-      termsAccepted: hasTerms, // termsAccepted özelliğini yapılandırır
-      kvkkAccepted: hasKvkk, // kvkkAccepted özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-  } // Açık olan kod/bileşen bloğunu kapatır
+  @override
+  Future<UserModel?> getUserById(String userId) async {
+    final db = await appDatabase.database;
+    final rows = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final baseUser = UserModel.fromMap(rows.first);
+    return _attachConsents(db, baseUser);
+  }
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<UserModel> login({ // İlgili kod satırını ve işlemi yürütür
-    required String identifier, // İlgili kod satırını ve işlemi yürütür
-    required String password, // İlgili kod satırını ve işlemi yürütür
-  }) async { // İlgili kod satırını ve işlemi yürütür
-    final trimmed = identifier.trim(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (trimmed.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException('E-posta veya telefon numarası boş bırakılamaz.'); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    if (password.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException('Şifre boş bırakılamaz.'); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+  Future<UserModel> _attachConsents(
+    dynamic db,
+    UserModel user,
+  ) async {
+    final consentRows = await db.query(
+      'consents',
+      where: 'userId = ? AND accepted = 1',
+      whereArgs: [user.id],
+    );
+    final hasTerms =
+        consentRows.any((r) => r['documentType'] == 'user_agreement');
+    final hasKvkk = consentRows.any((r) => r['documentType'] == 'kvkk');
+    return user.copyWith(
+      termsAccepted: hasTerms,
+      kvkkAccepted: hasKvkk,
+    );
+  }
 
-    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    List<Map<String, Object?>> rows; // İlgili kod satırını ve işlemi yürütür
+  @override
+  Future<UserModel> login({
+    required String identifier,
+    required String password,
+  }) async {
+    final trimmed = identifier.trim();
+    if (trimmed.isEmpty) {
+      throw const AppException('E-posta veya telefon numarası boş bırakılamaz.');
+    }
+    if (password.isEmpty) {
+      throw const AppException('Şifre boş bırakılamaz.');
+    }
 
-    if (trimmed.contains('@')) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-        'users', // İlgili kod satırını ve işlemi yürütür
-        where: 'LOWER(email) = ?', // where özelliğini yapılandırır
-        whereArgs: [trimmed.toLowerCase()], // whereArgs özelliğini yapılandırır
-        limit: 1, // limit özelliğini yapılandırır
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } else { // Koşul sağlanmadığında çalışacak alternatif bloğu başlatır
-      final normalizedPhone = Validators.normalizePhone(trimmed); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-      rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-        'users', // İlgili kod satırını ve işlemi yürütür
-        where: 'phone = ? OR phone = ?', // where özelliğini yapılandırır
-        whereArgs: [normalizedPhone, trimmed], // whereArgs özelliğini yapılandırır
-        limit: 1, // limit özelliğini yapılandırır
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    final db = await appDatabase.database;
+    List<Map<String, Object?>> rows;
 
-    if (rows.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
-        'Girdiğiniz bilgilere ait bir kullanıcı hesabı bulunamadı.', // İlgili kod satırını ve işlemi yürütür
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    if (trimmed.contains('@')) {
+      rows = await db.query(
+        'users',
+        where: 'LOWER(email) = ?',
+        whereArgs: [trimmed.toLowerCase()],
+        limit: 1,
+      );
+    } else {
+      final normalizedPhone = Validators.normalizePhone(trimmed);
+      rows = await db.query(
+        'users',
+        where: 'phone = ? OR phone = ?',
+        whereArgs: [normalizedPhone, trimmed],
+        limit: 1,
+      );
+    }
 
-    final baseUser = UserModel.fromMap(rows.first); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (!PasswordHasher.verify(password, baseUser.passwordHash)) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException('Hatalı şifre girdiniz. Lütfen tekrar deneyin.'); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    if (rows.isEmpty) {
+      throw const AppException(
+        'Girdiğiniz bilgilere ait bir kullanıcı hesabı bulunamadı.',
+      );
+    }
 
-    final user = await _attachConsents(db, baseUser); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    await prefs.setString(AppConstants.prefActiveUserIdKey, user.id); // Asenkron işlemin tamamlanmasını bekler
-    return user; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+    final baseUser = UserModel.fromMap(rows.first);
+    if (!PasswordHasher.verify(password, baseUser.passwordHash)) {
+      throw const AppException('Hatalı şifre girdiniz. Lütfen tekrar deneyin.');
+    }
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<UserModel> register({ // İlgili kod satırını ve işlemi yürütür
-    required String firstName, // İlgili kod satırını ve işlemi yürütür
-    required String lastName, // İlgili kod satırını ve işlemi yürütür
-    required String email, // İlgili kod satırını ve işlemi yürütür
-    required String phone, // İlgili kod satırını ve işlemi yürütür
-    required String password, // İlgili kod satırını ve işlemi yürütür
-    required bool acceptedUserAgreement, // İlgili kod satırını ve işlemi yürütür
-    required bool acceptedKvkk, // İlgili kod satırını ve işlemi yürütür
-  }) async { // İlgili kod satırını ve işlemi yürütür
-    if (firstName.trim().isEmpty || lastName.trim().isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException('Ad ve soyad alanları zorunludur.'); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    final emailErr = Validators.validateEmail(email); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (emailErr != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw AppException(emailErr); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    final phoneErr = Validators.validatePhone(phone); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (phoneErr != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw AppException(phoneErr); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    final passErr = Validators.validatePassword(password); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (passErr != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw AppException(passErr); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    if (!acceptedUserAgreement) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
-        'Kayıt olabilmek için Kullanıcı Sözleşmesi\'ni onaylamalısınız.', // İlgili kod satırını ve işlemi yürütür
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    if (!acceptedKvkk) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
-        'Kayıt olabilmek için KVKK Aydınlatma Metni\'ni onaylamalısınız.', // İlgili kod satırını ve işlemi yürütür
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    final user = await _attachConsents(db, baseUser);
+    await prefs.setString(AppConstants.prefActiveUserIdKey, user.id);
+    return user;
+  }
 
-    final normalizedEmail = email.trim().toLowerCase(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final normalizedPhone = Validators.normalizePhone(phone); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+  @override
+  Future<UserModel> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String password,
+    required bool acceptedUserAgreement,
+    required bool acceptedKvkk,
+  }) async {
+    if (firstName.trim().isEmpty || lastName.trim().isEmpty) {
+      throw const AppException('Ad ve soyad alanları zorunludur.');
+    }
+    final emailErr = Validators.validateEmail(email);
+    if (emailErr != null) {
+      throw AppException(emailErr);
+    }
+    final phoneErr = Validators.validatePhone(phone);
+    if (phoneErr != null) {
+      throw AppException(phoneErr);
+    }
+    final passErr = Validators.validatePassword(password);
+    if (passErr != null) {
+      throw AppException(passErr);
+    }
+    if (!acceptedUserAgreement) {
+      throw const AppException(
+        'Kayıt olabilmek için Kullanıcı Sözleşmesi\'ni onaylamalısınız.',
+      );
+    }
+    if (!acceptedKvkk) {
+      throw const AppException(
+        'Kayıt olabilmek için KVKK Aydınlatma Metni\'ni onaylamalısınız.',
+      );
+    }
 
-    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedPhone = Validators.normalizePhone(phone);
 
-    final existingEmail = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-      'users', // İlgili kod satırını ve işlemi yürütür
-      where: 'LOWER(email) = ?', // where özelliğini yapılandırır
-      whereArgs: [normalizedEmail], // whereArgs özelliğini yapılandırır
-      limit: 1, // limit özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    if (existingEmail.isNotEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
-        'Bu e-posta adresi başka bir hesapta zaten kayıtlı.', // İlgili kod satırını ve işlemi yürütür
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    final db = await appDatabase.database;
 
-    final existingPhone = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-      'users', // İlgili kod satırını ve işlemi yürütür
-      where: 'phone = ?', // where özelliğini yapılandırır
-      whereArgs: [normalizedPhone], // whereArgs özelliğini yapılandırır
-      limit: 1, // limit özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    if (existingPhone.isNotEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
-        'Bu telefon numarası başka bir hesapta zaten kayıtlı.', // İlgili kod satırını ve işlemi yürütür
-      ); // Açık olan kod/bileşen bloğunu kapatır
-    } // Açık olan kod/bileşen bloğunu kapatır
+    final existingEmail = await db.query(
+      'users',
+      where: 'LOWER(email) = ?',
+      whereArgs: [normalizedEmail],
+      limit: 1,
+    );
+    if (existingEmail.isNotEmpty) {
+      throw const AppException(
+        'Bu e-posta adresi başka bir hesapta zaten kayıtlı.',
+      );
+    }
 
-    final now = DateTime.now(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final user = UserModel( // Sabit/final değişken veya nesne tanımını başlatır
-      id: _uuid.v4(), // id özelliğini yapılandırır
-      firstName: firstName.trim(), // firstName özelliğini yapılandırır
-      lastName: lastName.trim(), // lastName özelliğini yapılandırır
-      email: normalizedEmail, // email özelliğini yapılandırır
-      phone: normalizedPhone, // phone özelliğini yapılandırır
-      passwordHash: PasswordHasher.hash(password), // passwordHash özelliğini yapılandırır
-      themeMode: 'light', // themeMode özelliğini yapılandırır
-      createdAt: now, // createdAt özelliğini yapılandırır
-      termsAccepted: true, // termsAccepted özelliğini yapılandırır
-      kvkkAccepted: true, // kvkkAccepted özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
+    final existingPhone = await db.query(
+      'users',
+      where: 'phone = ?',
+      whereArgs: [normalizedPhone],
+      limit: 1,
+    );
+    if (existingPhone.isNotEmpty) {
+      throw const AppException(
+        'Bu telefon numarası başka bir hesapta zaten kayıtlı.',
+      );
+    }
 
-    await db.transaction((txn) async { // Asenkron işlemin tamamlanmasını bekler
-      await txn.insert('users', user.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
+    final now = DateTime.now();
+    final user = UserModel(
+      id: _uuid.v4(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      passwordHash: PasswordHasher.hash(password),
+      themeMode: 'light',
+      createdAt: now,
+      termsAccepted: true,
+      kvkkAccepted: true,
+    );
 
-      final userAgreementConsent = ConsentModel( // Sabit/final değişken veya nesne tanımını başlatır
-        id: _uuid.v4(), // id özelliğini yapılandırır
-        userId: user.id, // userId özelliğini yapılandırır
-        documentType: 'user_agreement', // documentType özelliğini yapılandırır
-        documentVersion: '1.0', // documentVersion özelliğini yapılandırır
-        accepted: true, // accepted özelliğini yapılandırır
-        acceptedAt: now, // acceptedAt özelliğini yapılandırır
-      ); // Açık olan kod/bileşen bloğunu kapatır
+    await db.transaction((txn) async {
+      await txn.insert('users', user.toMap());
 
-      final kvkkConsent = ConsentModel( // Sabit/final değişken veya nesne tanımını başlatır
-        id: _uuid.v4(), // id özelliğini yapılandırır
-        userId: user.id, // userId özelliğini yapılandırır
-        documentType: 'kvkk', // documentType özelliğini yapılandırır
-        documentVersion: '1.0', // documentVersion özelliğini yapılandırır
-        accepted: true, // accepted özelliğini yapılandırır
-        acceptedAt: now, // acceptedAt özelliğini yapılandırır
-      ); // Açık olan kod/bileşen bloğunu kapatır
+      final userAgreementConsent = ConsentModel(
+        id: _uuid.v4(),
+        userId: user.id,
+        documentType: 'user_agreement',
+        documentVersion: '1.0',
+        accepted: true,
+        acceptedAt: now,
+      );
 
-      await txn.insert('consents', userAgreementConsent.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
-      await txn.insert('consents', kvkkConsent.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
-    }); // İlgili kod satırını ve işlemi yürütür
+      final kvkkConsent = ConsentModel(
+        id: _uuid.v4(),
+        userId: user.id,
+        documentType: 'kvkk',
+        documentVersion: '1.0',
+        accepted: true,
+        acceptedAt: now,
+      );
 
-    return user; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+      await txn.insert('consents', userAgreementConsent.toMap());
+      await txn.insert('consents', kvkkConsent.toMap());
+    });
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<void> logout() async { // İlgili kod satırını ve işlemi yürütür
-    await prefs.remove(AppConstants.prefActiveUserIdKey); // Asenkron işlemin tamamlanmasını bekler
-  } // Açık olan kod/bileşen bloğunu kapatır
+    return user;
+  }
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<UserModel> updateThemeMode({ // İlgili kod satırını ve işlemi yürütür
-    required String userId, // İlgili kod satırını ve işlemi yürütür
-    required String themeMode, // İlgili kod satırını ve işlemi yürütür
-  }) async { // İlgili kod satırını ve işlemi yürütür
-    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    await db.update( // Veritabanındaki mevcut kaydı günceller
-      'users', // İlgili kod satırını ve işlemi yürütür
-      {'themeMode': themeMode}, // {'themeMode' özelliğini yapılandırır
-      where: 'id = ?', // where özelliğini yapılandırır
-      whereArgs: [userId], // whereArgs özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    final updated = await getUserById(userId); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    if (updated == null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      throw const AppException('Kullanıcı bulunamadı.'); // İlgili hata nesnesini (Exception) fırlatır
-    } // Açık olan kod/bileşen bloğunu kapatır
-    return updated; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
+  @override
+  Future<void> logout() async {
+    await prefs.remove(AppConstants.prefActiveUserIdKey);
+  }
 
-  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
-  Future<List<UserModel>> getSuggestedPlayers(String currentUserId) async { // İlgili kod satırını ve işlemi yürütür
-    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
-    final rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
-      'users', // İlgili kod satırını ve işlemi yürütür
-      where: 'id != ?', // where özelliğini yapılandırır
-      whereArgs: [currentUserId], // whereArgs özelliğini yapılandırır
-      orderBy: 'createdAt ASC', // orderBy özelliğini yapılandırır
-    ); // Açık olan kod/bileşen bloğunu kapatır
-    return rows.map(UserModel.fromMap).toList(); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
-  } // Açık olan kod/bileşen bloğunu kapatır
-} // Açık olan kod/bileşen bloğunu kapatır
+  @override
+  Future<UserModel> updateThemeMode({
+    required String userId,
+    required String themeMode,
+  }) async {
+    final db = await appDatabase.database;
+    await db.update(
+      'users',
+      {'themeMode': themeMode},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+    final updated = await getUserById(userId);
+    if (updated == null) {
+      throw const AppException('Kullanıcı bulunamadı.');
+    }
+    return updated;
+  }
+
+  @override
+  Future<List<UserModel>> getSuggestedPlayers(String currentUserId) async {
+    final db = await appDatabase.database;
+    final rows = await db.query(
+      'users',
+      where: 'id != ?',
+      whereArgs: [currentUserId],
+      orderBy: 'createdAt ASC',
+    );
+    return rows.map(UserModel.fromMap).toList();
+  }
+}
