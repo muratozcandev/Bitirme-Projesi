@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "474442832476",
+    "project_id": "v7-app-341ae",
+    "storage_bucket": "v7-app-341ae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:474442832476:android:a9062c9312198a664d2499",
+        "android_client_info": {
+          "package_name": "com.sevenVseven.app.hali_saha_7v7"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPEUBgNws2jWdI19e4egYdVDxkaBB7jSU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
