@@ -307,7 +307,12 @@ Mevcut uygulama mimarisi `PROJECT.md` (Aşama 2) ve `SKILL.md` (Bölüm 5 & 20) 
   2. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
      - `seed_user_1` .. `seed_user_10` hesaplarının tamamının ilk girişte SQLite/`SeedData` profil bilgilerini doğru aldığı, `users/{uid}` ve `phone_lookup/{phone}` belgelerini atomik transaction ve `firestore.rules` kurallarıyla tam uyumlu oluşturduğu, mevcut `orkun@gmail.com` hesabının sorunsuz çalıştığı ve SQLite üzerindeki takım, davet, randevu, bildirim ve sohbet mesajlarının eksiksiz korunduğu uçtan uca test edilerek doğrulandı.
 
+---
 
-
-
+## GÜNCELLEME 10 — `lib/` Klasöründeki Tüm Dosyalara Satır Karşısı Türkçe Yorum Satırları Eklenmesi
+- **Durum:** Tamamlandı ve Doğrulandı
+- **Yapılan İşlemler:**
+  1. `lib/` dizini altındaki **58 Dart dosyasının tamamında** (toplam **8.009 kod satırı**) her kod satırının karşısına (`// ...`) o satırın ne işe yaradığını ve ne yaptığını açıklayan Türkçe yorum satırları eklendi.
+  2. Çok satırlı metin blokları (`'''...'''`) içeren [lib/data/database/app_database.dart](file:///c:/Users/Murat/Desktop/7v7/lib/data/database/app_database.dart) (SQL sorguları) ve [lib/features/legal/data/legal_texts.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/legal/data/legal_texts.dart) (KVKK ve Kullanıcı Sözleşmesi metinleri) dosyalarında string içerikleri bozulmadan korundu, kod satırları ise eksiksiz açıklandı.
+  3. `flutter analyze` (`No issues found!`) ve `flutter test` (`18/18 All tests passed!`) çalıştırılarak hiçbir sözdizimi veya çalışma zamanı hatası olmadığı doğrulandı.
 

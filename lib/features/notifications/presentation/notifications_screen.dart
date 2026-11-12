@@ -1,255 +1,255 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app/theme/app_theme.dart';
-import '../../../shared/models/notification_model.dart';
-import '../../../shared/providers/app_providers.dart';
-import '../../../shared/widgets/invitation_card.dart';
-import '../../../shared/widgets/state_widgets.dart';
+import 'package:flutter/material.dart'; // Flutter Material tasarım bileşenlerini içe aktarır
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod durum yönetimi (state management) paketini içe aktarır
+import '../../../app/theme/app_theme.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/notification_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/providers/app_providers.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/widgets/invitation_card.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/widgets/state_widgets.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 
-class NotificationsScreen extends ConsumerWidget {
-  const NotificationsScreen({super.key});
+class NotificationsScreen extends ConsumerWidget { // Riverpod sağlayıcılarını dinleyebilen NotificationsScreen görsel bileşenini tanımlar
+  const NotificationsScreen({super.key}); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-  Future<void> _handleAcceptInvitation(
-    BuildContext context,
-    WidgetRef ref,
-    String invitationId,
-  ) async {
-    final user = ref.read(authProvider).user;
-    if (user == null) return;
-    try {
-      await ref.read(invitationRepositoryProvider).acceptInvitation(
-            invitationId: invitationId,
-            currentUserId: user.id,
-          );
-      triggerGlobalRefresh(ref);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Daveti kabul ettiniz! Maç randevularınıza eklendi ve takım sohbetine erişiminiz açıldı.',
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
+  Future<void> _handleAcceptInvitation( // İlgili kod satırını ve işlemi yürütür
+    BuildContext context, // İlgili kod satırını ve işlemi yürütür
+    WidgetRef ref, // İlgili kod satırını ve işlemi yürütür
+    String invitationId, // İlgili kod satırını ve işlemi yürütür
+  ) async { // İlgili kod satırını ve işlemi yürütür
+    final user = ref.read(authProvider).user; // İlgili Riverpod sağlayıcısının anlık değerini veya kontrolcüsünü okur
+    if (user == null) return; // Koşulun sağlanıp sağlanmadığını kontrol eder
+    try { // Hata yakalama (try) bloğunu başlatır
+      await ref.read(invitationRepositoryProvider).acceptInvitation( // İlgili Riverpod sağlayıcısının anlık değerini veya kontrolcüsünü okur
+            invitationId: invitationId, // invitationId özelliğini yapılandırır
+            currentUserId: user.id, // currentUserId özelliğini yapılandırır
+          ); // Açık olan kod/bileşen bloğunu kapatır
+      triggerGlobalRefresh(ref); // İlgili kod satırını ve işlemi yürütür
+      if (context.mounted) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        ScaffoldMessenger.of(context).showSnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+          const SnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+            content: Text( // Ekrana metin bileşeni yazdırır
+              'Daveti kabul ettiniz! Maç randevularınıza eklendi ve takım sohbetine erişiminiz açıldı.', // İlgili kod satırını ve işlemi yürütür
+            ), // Açık olan kod/bileşen bloğunu kapatır
+            backgroundColor: AppColors.success, // backgroundColor özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (context.mounted) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        ScaffoldMessenger.of(context).showSnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+          SnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+            content: Text(e.toString()), // Ekrana metin bileşeni yazdırır
+            backgroundColor: AppColors.error, // backgroundColor özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  Future<void> _handleRejectInvitation(
-    BuildContext context,
-    WidgetRef ref,
-    String invitationId,
-  ) async {
-    final user = ref.read(authProvider).user;
-    if (user == null) return;
-    try {
-      await ref.read(invitationRepositoryProvider).rejectInvitation(
-            invitationId: invitationId,
-            currentUserId: user.id,
-          );
-      triggerGlobalRefresh(ref);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Davet reddedildi.'),
-            backgroundColor: AppColors.info,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
+  Future<void> _handleRejectInvitation( // İlgili kod satırını ve işlemi yürütür
+    BuildContext context, // İlgili kod satırını ve işlemi yürütür
+    WidgetRef ref, // İlgili kod satırını ve işlemi yürütür
+    String invitationId, // İlgili kod satırını ve işlemi yürütür
+  ) async { // İlgili kod satırını ve işlemi yürütür
+    final user = ref.read(authProvider).user; // İlgili Riverpod sağlayıcısının anlık değerini veya kontrolcüsünü okur
+    if (user == null) return; // Koşulun sağlanıp sağlanmadığını kontrol eder
+    try { // Hata yakalama (try) bloğunu başlatır
+      await ref.read(invitationRepositoryProvider).rejectInvitation( // İlgili Riverpod sağlayıcısının anlık değerini veya kontrolcüsünü okur
+            invitationId: invitationId, // invitationId özelliğini yapılandırır
+            currentUserId: user.id, // currentUserId özelliğini yapılandırır
+          ); // Açık olan kod/bileşen bloğunu kapatır
+      triggerGlobalRefresh(ref); // İlgili kod satırını ve işlemi yürütür
+      if (context.mounted) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        ScaffoldMessenger.of(context).showSnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+          const SnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+            content: Text('Davet reddedildi.'), // Ekrana metin bileşeni yazdırır
+            backgroundColor: AppColors.info, // backgroundColor özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (context.mounted) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        ScaffoldMessenger.of(context).showSnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+          SnackBar( // Ekranın altında bilgilendirme veya hata mesajı (SnackBar) gösterir
+            content: Text(e.toString()), // Ekrana metin bileşeni yazdırır
+            backgroundColor: AppColors.error, // backgroundColor özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final invitationsAsync = ref.watch(incomingInvitationsProvider);
-    final notificationsAsync = ref.watch(userNotificationsProvider);
-    final user = ref.watch(authProvider).user;
-    final theme = Theme.of(context);
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Widget build(BuildContext context, WidgetRef ref) { // Ekranın veya bileşenin görsel arayüz ağacını oluşturur
+    final invitationsAsync = ref.watch(incomingInvitationsProvider); // İlgili Riverpod sağlayıcısını dinler ve değiştiğinde bileşeni yeniden çizer
+    final notificationsAsync = ref.watch(userNotificationsProvider); // İlgili Riverpod sağlayıcısını dinler ve değiştiğinde bileşeni yeniden çizer
+    final user = ref.watch(authProvider).user; // İlgili Riverpod sağlayıcısını dinler ve değiştiğinde bileşeni yeniden çizer
+    final theme = Theme.of(context); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bildirimler ve Davetler'),
-        actions: [
-          if (user != null)
-            TextButton.icon(
-              key: const Key('mark_all_notifications_read_btn'),
-              onPressed: () async {
-                await ref
-                    .read(notificationRepositoryProvider)
-                    .markAllAsRead(user.id);
-                triggerGlobalRefresh(ref);
-              },
-              icon: const Icon(
-                Icons.done_all_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              label: const Text(
-                'Tümünü Okundu İşaretle',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: invitationsAsync.when(
-          loading: () =>
-              const LoadingWidget(message: 'Bildirimler yükleniyor...'),
-          error: (err, _) => AppErrorWidget(
-            message: err.toString(),
-            onRetry: () => triggerGlobalRefresh(ref),
-          ),
-          data: (invitations) {
-            return notificationsAsync.when(
-              loading: () => const LoadingWidget(),
-              error: (err, _) => AppErrorWidget(message: err.toString()),
-              data: (notifications) {
+    return Scaffold( // Sayfanın temel iskeletini (üst çubuk, gövde, alt menü) oluşturur
+      appBar: AppBar( // Ekranın üst başlık çubuğunu (AppBar) oluşturur
+        title: const Text('Bildirimler ve Davetler'), // Ekrana metin bileşeni yazdırır
+        actions: [ // İlgili kod satırını ve işlemi yürütür
+          if (user != null) // Koşulun sağlanıp sağlanmadığını kontrol eder
+            TextButton.icon( // Tıklanabilir aksiyon butonunu oluşturur
+              key: const Key('mark_all_notifications_read_btn'), // key özelliğini yapılandırır
+              onPressed: () async { // onPressed özelliğini yapılandırır
+                await ref // Asenkron işlemin tamamlanmasını bekler
+                    .read(notificationRepositoryProvider) // İlgili kod satırını ve işlemi yürütür
+                    .markAllAsRead(user.id); // İlgili kod satırını ve işlemi yürütür
+                triggerGlobalRefresh(ref); // İlgili kod satırını ve işlemi yürütür
+              }, // Açık olan kod/bileşen bloğunu kapatır
+              icon: const Icon( // Ekranda vektörel ikon gösterir
+                Icons.done_all_rounded, // İlgili kod satırını ve işlemi yürütür
+                color: Colors.white, // color özelliğini yapılandırır
+                size: 18, // size özelliğini yapılandırır
+              ), // Açık olan kod/bileşen bloğunu kapatır
+              label: const Text( // Ekrana metin bileşeni yazdırır
+                'Tümünü Okundu İşaretle', // İlgili kod satırını ve işlemi yürütür
+                style: TextStyle(color: Colors.white, fontSize: 12), // style özelliğini yapılandırır
+              ), // Açık olan kod/bileşen bloğunu kapatır
+            ), // Açık olan kod/bileşen bloğunu kapatır
+        ], // Açık olan kod/bileşen bloğunu kapatır
+      ), // Açık olan kod/bileşen bloğunu kapatır
+      body: SafeArea( // İçeriği telefonun çentik ve sistem çubuğu alanlarından korur
+        child: invitationsAsync.when( // İlgili kod satırını ve işlemi yürütür
+          loading: () => // İlgili kod satırını ve işlemi yürütür
+              const LoadingWidget(message: 'Bildirimler yükleniyor...'), // Sabit/final değişken veya nesne tanımını başlatır
+          error: (err, _) => AppErrorWidget( // İlgili kod satırını ve işlemi yürütür
+            message: err.toString(), // message özelliğini yapılandırır
+            onRetry: () => triggerGlobalRefresh(ref), // onRetry özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+          data: (invitations) { // data özelliğini yapılandırır
+            return notificationsAsync.when( // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+              loading: () => const LoadingWidget(), // loading özelliğini yapılandırır
+              error: (err, _) => AppErrorWidget(message: err.toString()), // error özelliğini yapılandırır
+              data: (notifications) { // data özelliğini yapılandırır
                 // "Tümünü Okundu İşaretle" butonuna tıklanmadığı sürece bildirim kayıtları görünür kalır;
                 // tıklandığında yalnızca bu bölüm gizlenir, "Gelen Takım Davetleri" ise her zaman kalır.
-                final visibleNotifications =
-                    notifications.where((n) => !n.isRead).toList();
+                final visibleNotifications = // Sabit/final değişken veya nesne tanımını başlatır
+                    notifications.where((n) => !n.isRead).toList(); // İlgili kod satırını ve işlemi yürütür
 
-                if (invitations.isEmpty && visibleNotifications.isEmpty) {
-                  return const EmptyStateWidget(
-                    icon: Icons.notifications_off_outlined,
-                    title: 'Henüz Bildiriminiz Yok',
-                    subtitle:
-                        'Size gelen takım davetleri ve davet yanıt bildirimleri burada görüntülenecektir.',
-                  );
-                }
+                if (invitations.isEmpty && visibleNotifications.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+                  return const EmptyStateWidget( // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+                    icon: Icons.notifications_off_outlined, // icon özelliğini yapılandırır
+                    title: 'Henüz Bildiriminiz Yok', // title özelliğini yapılandırır
+                    subtitle: // İlgili kod satırını ve işlemi yürütür
+                        'Size gelen takım davetleri ve davet yanıt bildirimleri burada görüntülenecektir.', // İlgili kod satırını ve işlemi yürütür
+                  ); // Açık olan kod/bileşen bloğunu kapatır
+                } // Açık olan kod/bileşen bloğunu kapatır
 
-                return RefreshIndicator(
-                  onRefresh: () async => triggerGlobalRefresh(ref),
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if (invitations.isNotEmpty) ...[
-                        Text(
-                          'Gelen Takım Davetleri (${invitations.length})',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...invitations.map(
-                          (inv) => InvitationCard(
-                            key: Key('incoming_invitation_${inv.id}'),
-                            invitation: inv,
-                            onAccept: inv.isPending
-                                ? () =>
-                                    _handleAcceptInvitation(context, ref, inv.id)
-                                : null,
-                            onReject: inv.isPending
-                                ? () =>
-                                    _handleRejectInvitation(context, ref, inv.id)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (visibleNotifications.isNotEmpty) ...[
-                        Text(
-                          'Tüm Bildirim Kayıtları (${visibleNotifications.length})',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...visibleNotifications.map((n) {
-                          final IconData icon;
-                          final Color iconColor;
-                          switch (n.type) {
-                            case NotificationType.teamInvitation:
-                              icon = Icons.mail_outline_rounded;
-                              iconColor = AppColors.info;
-                            case NotificationType.invitationAccepted:
-                              icon = Icons.check_circle_outline_rounded;
-                              iconColor = AppColors.success;
-                            case NotificationType.invitationRejected:
-                              icon = Icons.cancel_outlined;
-                              iconColor = AppColors.error;
-                            case NotificationType.teamInfo:
-                              icon = Icons.info_outline_rounded;
-                              iconColor = theme.colorScheme.primary;
-                          }
+                return RefreshIndicator( // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+                  onRefresh: () async => triggerGlobalRefresh(ref), // onRefresh özelliğini yapılandırır
+                  child: ListView( // Kaydırılabilir liste görünümü oluşturur
+                    padding: const EdgeInsets.all(16), // padding özelliğini yapılandırır
+                    children: [ // İlgili kod satırını ve işlemi yürütür
+                      if (invitations.isNotEmpty) ...[ // Koşulun sağlanıp sağlanmadığını kontrol eder
+                        Text( // Ekrana metin bileşeni yazdırır
+                          'Gelen Takım Davetleri (${invitations.length})', // İlgili kod satırını ve işlemi yürütür
+                          style: theme.textTheme.titleMedium?.copyWith( // İlgili kod satırını ve işlemi yürütür
+                            fontWeight: FontWeight.w800, // fontWeight özelliğini yapılandırır
+                          ), // Açık olan kod/bileşen bloğunu kapatır
+                        ), // Açık olan kod/bileşen bloğunu kapatır
+                        const SizedBox(height: 8), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+                        ...invitations.map( // İlgili kod satırını ve işlemi yürütür
+                          (inv) => InvitationCard( // Köşeleri yuvarlatılmış ve gölgeli bilgi kartı kutusu oluşturur
+                            key: Key('incoming_invitation_${inv.id}'), // key özelliğini yapılandırır
+                            invitation: inv, // invitation özelliğini yapılandırır
+                            onAccept: inv.isPending // İlgili kod satırını ve işlemi yürütür
+                                ? () => // İlgili kod satırını ve işlemi yürütür
+                                    _handleAcceptInvitation(context, ref, inv.id) // İlgili kod satırını ve işlemi yürütür
+                                : null, //  özelliğini yapılandırır
+                            onReject: inv.isPending // İlgili kod satırını ve işlemi yürütür
+                                ? () => // İlgili kod satırını ve işlemi yürütür
+                                    _handleRejectInvitation(context, ref, inv.id) // İlgili kod satırını ve işlemi yürütür
+                                : null, //  özelliğini yapılandırır
+                          ), // Açık olan kod/bileşen bloğunu kapatır
+                        ), // Açık olan kod/bileşen bloğunu kapatır
+                        const SizedBox(height: 16), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+                      ], // Açık olan kod/bileşen bloğunu kapatır
+                      if (visibleNotifications.isNotEmpty) ...[ // Koşulun sağlanıp sağlanmadığını kontrol eder
+                        Text( // Ekrana metin bileşeni yazdırır
+                          'Tüm Bildirim Kayıtları (${visibleNotifications.length})', // İlgili kod satırını ve işlemi yürütür
+                          style: theme.textTheme.titleMedium?.copyWith( // İlgili kod satırını ve işlemi yürütür
+                            fontWeight: FontWeight.w800, // fontWeight özelliğini yapılandırır
+                          ), // Açık olan kod/bileşen bloğunu kapatır
+                        ), // Açık olan kod/bileşen bloğunu kapatır
+                        const SizedBox(height: 8), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+                        ...visibleNotifications.map((n) { // İlgili kod satırını ve işlemi yürütür
+                          final IconData icon; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+                          final Color iconColor; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+                          switch (n.type) { // Değere göre çoklu durum kontrolü (switch) başlatır
+                            case NotificationType.teamInvitation: // Belirtilen durum eşleştiğinde çalışacak dalı tanımlar
+                              icon = Icons.mail_outline_rounded; // İlgili kod satırını ve işlemi yürütür
+                              iconColor = AppColors.info; // İlgili kod satırını ve işlemi yürütür
+                            case NotificationType.invitationAccepted: // Belirtilen durum eşleştiğinde çalışacak dalı tanımlar
+                              icon = Icons.check_circle_outline_rounded; // İlgili kod satırını ve işlemi yürütür
+                              iconColor = AppColors.success; // İlgili kod satırını ve işlemi yürütür
+                            case NotificationType.invitationRejected: // Belirtilen durum eşleştiğinde çalışacak dalı tanımlar
+                              icon = Icons.cancel_outlined; // İlgili kod satırını ve işlemi yürütür
+                              iconColor = AppColors.error; // İlgili kod satırını ve işlemi yürütür
+                            case NotificationType.teamInfo: // Belirtilen durum eşleştiğinde çalışacak dalı tanımlar
+                              icon = Icons.info_outline_rounded; // İlgili kod satırını ve işlemi yürütür
+                              iconColor = theme.colorScheme.primary; // İlgili kod satırını ve işlemi yürütür
+                          } // Açık olan kod/bileşen bloğunu kapatır
 
-                          return Card(
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    iconColor.withValues(alpha: 0.15),
-                                child: Icon(icon, color: iconColor),
-                              ),
-                              title: Text(
-                                n.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(n.body),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatDateTime(n.createdAt),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 11,
-                                      color:
-                                          theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              trailing: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.pitchGreen,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
+                          return Card( // Köşeleri yuvarlatılmış ve gölgeli bilgi kartı kutusu oluşturur
+                            child: ListTile( // İlgili kod satırını ve işlemi yürütür
+                              leading: CircleAvatar( // İlgili kod satırını ve işlemi yürütür
+                                backgroundColor: // İlgili kod satırını ve işlemi yürütür
+                                    iconColor.withValues(alpha: 0.15), // iconColor.withValues(alpha özelliğini yapılandırır
+                                child: Icon(icon, color: iconColor), // Ekranda vektörel ikon gösterir
+                              ), // Açık olan kod/bileşen bloğunu kapatır
+                              title: Text( // Ekrana metin bileşeni yazdırır
+                                n.title, // İlgili kod satırını ve işlemi yürütür
+                                style: const TextStyle( // İlgili kod satırını ve işlemi yürütür
+                                  fontWeight: FontWeight.w800, // fontWeight özelliğini yapılandırır
+                                ), // Açık olan kod/bileşen bloğunu kapatır
+                              ), // Açık olan kod/bileşen bloğunu kapatır
+                              subtitle: Column( // Alt bileşenleri dikey eksende alt alta dizer
+                                crossAxisAlignment: CrossAxisAlignment.start, // crossAxisAlignment özelliğini yapılandırır
+                                children: [ // İlgili kod satırını ve işlemi yürütür
+                                  const SizedBox(height: 4), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+                                  Text(n.body), // Ekrana metin bileşeni yazdırır
+                                  const SizedBox(height: 4), // Sabit genişlik/yükseklik veya bileşenler arası boşluk oluşturur
+                                  Text( // Ekrana metin bileşeni yazdırır
+                                    _formatDateTime(n.createdAt), // İlgili kod satırını ve işlemi yürütür
+                                    style: theme.textTheme.bodySmall?.copyWith( // İlgili kod satırını ve işlemi yürütür
+                                      fontSize: 11, // fontSize özelliğini yapılandırır
+                                      color: // İlgili kod satırını ve işlemi yürütür
+                                          theme.colorScheme.onSurfaceVariant, // İlgili kod satırını ve işlemi yürütür
+                                    ), // Açık olan kod/bileşen bloğunu kapatır
+                                  ), // Açık olan kod/bileşen bloğunu kapatır
+                                ], // Açık olan kod/bileşen bloğunu kapatır
+                              ), // Açık olan kod/bileşen bloğunu kapatır
+                              trailing: Container( // Boyut, dolgulu alan (padding) ve arka plan dekorasyonu sağlayan kutu oluşturur
+                                width: 10, // width özelliğini yapılandırır
+                                height: 10, // height özelliğini yapılandırır
+                                decoration: const BoxDecoration( // İlgili kod satırını ve işlemi yürütür
+                                  color: AppColors.pitchGreen, // color özelliğini yapılandırır
+                                  shape: BoxShape.circle, // shape özelliğini yapılandırır
+                                ), // Açık olan kod/bileşen bloğunu kapatır
+                              ), // Açık olan kod/bileşen bloğunu kapatır
+                            ), // Açık olan kod/bileşen bloğunu kapatır
+                          ); // Açık olan kod/bileşen bloğunu kapatır
+                        }), // İlgili kod satırını ve işlemi yürütür
+                      ], // Açık olan kod/bileşen bloğunu kapatır
+                    ], // Açık olan kod/bileşen bloğunu kapatır
+                  ), // Açık olan kod/bileşen bloğunu kapatır
+                ); // Açık olan kod/bileşen bloğunu kapatır
+              }, // Açık olan kod/bileşen bloğunu kapatır
+            ); // Açık olan kod/bileşen bloğunu kapatır
+          }, // Açık olan kod/bileşen bloğunu kapatır
+        ), // Açık olan kod/bileşen bloğunu kapatır
+      ), // Açık olan kod/bileşen bloğunu kapatır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  String _formatDateTime(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final y = dt.year;
-    final h = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '$d.$m.$y $h:$min';
-  }
-}
+  String _formatDateTime(DateTime dt) { // İlgili kod satırını ve işlemi yürütür
+    final d = dt.day.toString().padLeft(2, '0'); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final m = dt.month.toString().padLeft(2, '0'); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final y = dt.year; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final h = dt.hour.toString().padLeft(2, '0'); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final min = dt.minute.toString().padLeft(2, '0'); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    return '$d.$m.$y $h:$min'; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
+} // Açık olan kod/bileşen bloğunu kapatır
 

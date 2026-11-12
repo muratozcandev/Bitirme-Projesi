@@ -1,37 +1,37 @@
-import '../../../shared/models/formation.dart';
-import '../../../shared/models/team_model.dart';
+import '../../../shared/models/formation.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/team_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 
-abstract class TeamRepository {
-  Future<TeamModel> createTeam({
-    required String captainId,
-    required String captainName,
-    required Formation formation,
-    required String province,
-    required String district,
-    required String venueName,
-    required String matchDate,
-    required String startTime,
-    required String endTime,
-    required Map<String, String> lineup,
-    String? captainPositionKey,
-  });
+abstract class TeamRepository { // TeamRepository soyut arayüz (interface) sınıfını tanımlar
+  Future<TeamModel> createTeam({ // İlgili kod satırını ve işlemi yürütür
+    required String captainId, // İlgili kod satırını ve işlemi yürütür
+    required String captainName, // İlgili kod satırını ve işlemi yürütür
+    required Formation formation, // İlgili kod satırını ve işlemi yürütür
+    required String province, // İlgili kod satırını ve işlemi yürütür
+    required String district, // İlgili kod satırını ve işlemi yürütür
+    required String venueName, // İlgili kod satırını ve işlemi yürütür
+    required String matchDate, // İlgili kod satırını ve işlemi yürütür
+    required String startTime, // İlgili kod satırını ve işlemi yürütür
+    required String endTime, // İlgili kod satırını ve işlemi yürütür
+    required Map<String, String> lineup, // İlgili kod satırını ve işlemi yürütür
+    String? captainPositionKey, // İlgili kod satırını ve işlemi yürütür
+  }); // İlgili kod satırını ve işlemi yürütür
 
-  Future<TeamModel?> getTeamById(String teamId);
+  Future<TeamModel?> getTeamById(String teamId); // İlgili kod satırını ve işlemi yürütür
 
-  Future<List<TeamModel>> getUserAppointments(String userId);
+  Future<List<TeamModel>> getUserAppointments(String userId); // İlgili kod satırını ve işlemi yürütür
 
-  Future<List<TeamModel>> getCaptainTeams(String captainId);
+  Future<List<TeamModel>> getCaptainTeams(String captainId); // İlgili kod satırını ve işlemi yürütür
 
-  Future<List<TeamModel>> getUserChatTeams(String userId);
+  Future<List<TeamModel>> getUserChatTeams(String userId); // İlgili kod satırını ve işlemi yürütür
 
-  Future<void> deleteAppointmentForUser({
-    required String teamId,
-    required String userId,
-  });
+  Future<void> deleteAppointmentForUser({ // İlgili kod satırını ve işlemi yürütür
+    required String teamId, // İlgili kod satırını ve işlemi yürütür
+    required String userId, // İlgili kod satırını ve işlemi yürütür
+  }); // İlgili kod satırını ve işlemi yürütür
 
-  Future<bool> isUserMemberOfTeam({
-    required String teamId,
-    required String userId,
-  });
-}
+  Future<bool> isUserMemberOfTeam({ // İlgili kod satırını ve işlemi yürütür
+    required String teamId, // İlgili kod satırını ve işlemi yürütür
+    required String userId, // İlgili kod satırını ve işlemi yürütür
+  }); // İlgili kod satırını ve işlemi yürütür
+} // Açık olan kod/bileşen bloğunu kapatır
 

@@ -1,401 +1,401 @@
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:uuid/uuid.dart';
-import '../../../core/errors/app_exception.dart';
-import '../../../data/database/app_database.dart';
-import '../../../shared/models/formation.dart';
-import '../../../shared/models/match_model.dart';
-import '../../../shared/models/team_member_model.dart';
-import '../../../shared/models/team_model.dart';
-import '../domain/team_repository.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // SQLite yerel veritabanı sürücüsünü içe aktarır
+import 'package:uuid/uuid.dart'; // Benzersiz kimlik (UUID) üretici paketi içe aktarır
+import '../../../core/errors/app_exception.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../data/database/app_database.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/formation.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/match_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/team_member_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/team_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../domain/team_repository.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 
-class LocalTeamRepository implements TeamRepository {
-  final AppDatabase appDatabase;
-  final Uuid _uuid = const Uuid();
+class LocalTeamRepository implements TeamRepository { // LocalTeamRepository veri erişim (repository) sınıfını tanımlar
+  final AppDatabase appDatabase; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+  final Uuid _uuid = const Uuid(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-  LocalTeamRepository({required this.appDatabase});
+  LocalTeamRepository({required this.appDatabase}); // İlgili kod satırını ve işlemi yürütür
 
-  @override
-  Future<TeamModel> createTeam({
-    required String captainId,
-    required String captainName,
-    required Formation formation,
-    required String province,
-    required String district,
-    required String venueName,
-    required String matchDate,
-    required String startTime,
-    required String endTime,
-    required Map<String, String> lineup,
-    String? captainPositionKey,
-  }) async {
-    if (province.trim().isEmpty ||
-        district.trim().isEmpty ||
-        venueName.trim().isEmpty ||
-        matchDate.trim().isEmpty ||
-        startTime.trim().isEmpty ||
-        endTime.trim().isEmpty) {
-      throw const AppException(
-        'Takım oluşturmak için il, ilçe, halı saha, tarih, saat ve diziliş seçilmelidir.',
-      );
-    }
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<TeamModel> createTeam({ // İlgili kod satırını ve işlemi yürütür
+    required String captainId, // İlgili kod satırını ve işlemi yürütür
+    required String captainName, // İlgili kod satırını ve işlemi yürütür
+    required Formation formation, // İlgili kod satırını ve işlemi yürütür
+    required String province, // İlgili kod satırını ve işlemi yürütür
+    required String district, // İlgili kod satırını ve işlemi yürütür
+    required String venueName, // İlgili kod satırını ve işlemi yürütür
+    required String matchDate, // İlgili kod satırını ve işlemi yürütür
+    required String startTime, // İlgili kod satırını ve işlemi yürütür
+    required String endTime, // İlgili kod satırını ve işlemi yürütür
+    required Map<String, String> lineup, // İlgili kod satırını ve işlemi yürütür
+    String? captainPositionKey, // İlgili kod satırını ve işlemi yürütür
+  }) async { // İlgili kod satırını ve işlemi yürütür
+    if (province.trim().isEmpty || // Koşulun sağlanıp sağlanmadığını kontrol eder
+        district.trim().isEmpty || // İlgili kod satırını ve işlemi yürütür
+        venueName.trim().isEmpty || // İlgili kod satırını ve işlemi yürütür
+        matchDate.trim().isEmpty || // İlgili kod satırını ve işlemi yürütür
+        startTime.trim().isEmpty || // İlgili kod satırını ve işlemi yürütür
+        endTime.trim().isEmpty) { // İlgili kod satırını ve işlemi yürütür
+      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
+        'Takım oluşturmak için il, ilçe, halı saha, tarih, saat ve diziliş seçilmelidir.', // İlgili kod satırını ve işlemi yürütür
+      ); // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
 
-    final db = await appDatabase.database;
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
     // Aynı kaptan aynı saha, tarih ve saat için tekrar takım oluşturamaz
-    final duplicateRows = await db.query(
-      'teams',
-      where:
-          'captainId = ? AND province = ? AND district = ? AND venueName = ? AND matchDate = ? AND startTime = ? AND status = ?',
-      whereArgs: [
-        captainId,
-        province,
-        district,
-        venueName,
-        matchDate,
-        startTime,
-        'active',
-      ],
-      limit: 1,
-    );
+    final duplicateRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: // İlgili kod satırını ve işlemi yürütür
+          'captainId = ? AND province = ? AND district = ? AND venueName = ? AND matchDate = ? AND startTime = ? AND status = ?', // İlgili kod satırını ve işlemi yürütür
+      whereArgs: [ // İlgili kod satırını ve işlemi yürütür
+        captainId, // İlgili kod satırını ve işlemi yürütür
+        province, // İlgili kod satırını ve işlemi yürütür
+        district, // İlgili kod satırını ve işlemi yürütür
+        venueName, // İlgili kod satırını ve işlemi yürütür
+        matchDate, // İlgili kod satırını ve işlemi yürütür
+        startTime, // İlgili kod satırını ve işlemi yürütür
+        'active', // İlgili kod satırını ve işlemi yürütür
+      ], // Açık olan kod/bileşen bloğunu kapatır
+      limit: 1, // limit özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    if (duplicateRows.isNotEmpty) {
-      throw const AppException(
-        'Bu halı saha, tarih ve saat için zaten oluşturulmuş bir takımınız bulunuyor.',
-      );
-    }
+    if (duplicateRows.isNotEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+      throw const AppException( // İlgili hata nesnesini (Exception) fırlatır
+        'Bu halı saha, tarih ve saat için zaten oluşturulmuş bir takımınız bulunuyor.', // İlgili kod satırını ve işlemi yürütür
+      ); // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
 
-    final now = DateTime.now();
-    final teamId = _uuid.v4();
-    final matchId = _uuid.v4();
+    final now = DateTime.now(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final teamId = _uuid.v4(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final matchId = _uuid.v4(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    final validPositionKeys = formation.positions.map((e) => e.key).toList();
-    if (validPositionKeys.length != 7) {
-      throw const AppException('Diziliş 7 oyuncudan oluşmalıdır.');
-    }
+    final validPositionKeys = formation.positions.map((e) => e.key).toList(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    if (validPositionKeys.length != 7) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+      throw const AppException('Diziliş 7 oyuncudan oluşmalıdır.'); // İlgili hata nesnesini (Exception) fırlatır
+    } // Açık olan kod/bileşen bloğunu kapatır
 
     // Kaptanın kendi pozisyonunu belirle:
-    String resolvedCaptainPos = captainPositionKey ?? '';
-    if (resolvedCaptainPos.isEmpty ||
-        !validPositionKeys.contains(resolvedCaptainPos)) {
+    String resolvedCaptainPos = captainPositionKey ?? ''; // İlgili kod satırını ve işlemi yürütür
+    if (resolvedCaptainPos.isEmpty || // Koşulun sağlanıp sağlanmadığını kontrol eder
+        !validPositionKeys.contains(resolvedCaptainPos)) { // İlgili kod satırını ve işlemi yürütür
       // Kaptanın adı herhangi bir mevkide yazılıysa o mevkiyi kaptana ata
-      final matchedEntry = lineup.entries.where((e) {
-        return validPositionKeys.contains(e.key) &&
-            e.value.trim().toLowerCase() == captainName.trim().toLowerCase();
-      }).firstOrNull;
+      final matchedEntry = lineup.entries.where((e) { // Sabit/final değişken veya nesne tanımını başlatır
+        return validPositionKeys.contains(e.key) && // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+            e.value.trim().toLowerCase() == captainName.trim().toLowerCase(); // İlgili kod satırını ve işlemi yürütür
+      }).firstOrNull; // İlgili kod satırını ve işlemi yürütür
 
-      if (matchedEntry != null) {
-        resolvedCaptainPos = matchedEntry.key;
-      } else {
+      if (matchedEntry != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        resolvedCaptainPos = matchedEntry.key; // İlgili kod satırını ve işlemi yürütür
+      } else { // Koşul sağlanmadığında çalışacak alternatif bloğu başlatır
         // Boş olan ilk mevkiyi veya GK_1'i kaptana ata
-        resolvedCaptainPos = validPositionKeys.firstWhere(
-          (k) => (lineup[k] ?? '').trim().isEmpty,
-          orElse: () => validPositionKeys.first,
-        );
-      }
-    }
+        resolvedCaptainPos = validPositionKeys.firstWhere( // İlgili kod satırını ve işlemi yürütür
+          (k) => (lineup[k] ?? '').trim().isEmpty, // İlgili kod satırını ve işlemi yürütür
+          orElse: () => validPositionKeys.first, // orElse özelliğini yapılandırır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
 
-    final membersToInsert = <TeamMemberModel>[];
+    final membersToInsert = <TeamMemberModel>[]; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    for (final posKey in validPositionKeys) {
-      if (posKey == resolvedCaptainPos) {
-        final customText = (lineup[posKey] ?? '').trim();
-        membersToInsert.add(
-          TeamMemberModel(
-            id: _uuid.v4(),
-            teamId: teamId,
-            userId: captainId,
-            position: posKey,
-            displayName: customText.isNotEmpty ? customText : captainName,
-            role: 'captain',
-            joinedAt: now,
-          ),
-        );
-      } else {
-        final playerName = (lineup[posKey] ?? '').trim();
-        if (playerName.isNotEmpty) {
-          membersToInsert.add(
-            TeamMemberModel(
-              id: _uuid.v4(),
-              teamId: teamId,
-              userId: null,
-              position: posKey,
-              displayName: playerName,
-              role: 'guest',
-              joinedAt: now,
-            ),
-          );
-        }
-      }
-    }
+    for (final posKey in validPositionKeys) { // Koleksiyon veya aralık üzerinde döngü başlatır
+      if (posKey == resolvedCaptainPos) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        final customText = (lineup[posKey] ?? '').trim(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+        membersToInsert.add( // İlgili kod satırını ve işlemi yürütür
+          TeamMemberModel( // İlgili kod satırını ve işlemi yürütür
+            id: _uuid.v4(), // id özelliğini yapılandırır
+            teamId: teamId, // teamId özelliğini yapılandırır
+            userId: captainId, // userId özelliğini yapılandırır
+            position: posKey, // position özelliğini yapılandırır
+            displayName: customText.isNotEmpty ? customText : captainName, // displayName özelliğini yapılandırır
+            role: 'captain', // role özelliğini yapılandırır
+            joinedAt: now, // joinedAt özelliğini yapılandırır
+          ), // Açık olan kod/bileşen bloğunu kapatır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+      } else { // Koşul sağlanmadığında çalışacak alternatif bloğu başlatır
+        final playerName = (lineup[posKey] ?? '').trim(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+        if (playerName.isNotEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+          membersToInsert.add( // İlgili kod satırını ve işlemi yürütür
+            TeamMemberModel( // İlgili kod satırını ve işlemi yürütür
+              id: _uuid.v4(), // id özelliğini yapılandırır
+              teamId: teamId, // teamId özelliğini yapılandırır
+              userId: null, // userId özelliğini yapılandırır
+              position: posKey, // position özelliğini yapılandırır
+              displayName: playerName, // displayName özelliğini yapılandırır
+              role: 'guest', // role özelliğini yapılandırır
+              joinedAt: now, // joinedAt özelliğini yapılandırır
+            ), // Açık olan kod/bileşen bloğunu kapatır
+          ); // Açık olan kod/bileşen bloğunu kapatır
+        } // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
 
-    final team = TeamModel(
-      id: teamId,
-      captainId: captainId,
-      captainName: captainName,
-      formation: formation,
-      province: province,
-      district: district,
-      venueName: venueName,
-      matchDate: matchDate,
-      startTime: startTime,
-      endTime: endTime,
-      createdAt: now,
-      status: 'active',
-      members: membersToInsert,
-    );
+    final team = TeamModel( // Sabit/final değişken veya nesne tanımını başlatır
+      id: teamId, // id özelliğini yapılandırır
+      captainId: captainId, // captainId özelliğini yapılandırır
+      captainName: captainName, // captainName özelliğini yapılandırır
+      formation: formation, // formation özelliğini yapılandırır
+      province: province, // province özelliğini yapılandırır
+      district: district, // district özelliğini yapılandırır
+      venueName: venueName, // venueName özelliğini yapılandırır
+      matchDate: matchDate, // matchDate özelliğini yapılandırır
+      startTime: startTime, // startTime özelliğini yapılandırır
+      endTime: endTime, // endTime özelliğini yapılandırır
+      createdAt: now, // createdAt özelliğini yapılandırır
+      status: 'active', // status özelliğini yapılandırır
+      members: membersToInsert, // members özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final matchRecord = MatchModel(
-      id: matchId,
-      teamId: teamId,
-      venueName: venueName,
-      province: province,
-      district: district,
-      matchDate: matchDate,
-      startTime: startTime,
-      endTime: endTime,
-    );
+    final matchRecord = MatchModel( // Sabit/final değişken veya nesne tanımını başlatır
+      id: matchId, // id özelliğini yapılandırır
+      teamId: teamId, // teamId özelliğini yapılandırır
+      venueName: venueName, // venueName özelliğini yapılandırır
+      province: province, // province özelliğini yapılandırır
+      district: district, // district özelliğini yapılandırır
+      matchDate: matchDate, // matchDate özelliğini yapılandırır
+      startTime: startTime, // startTime özelliğini yapılandırır
+      endTime: endTime, // endTime özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    await db.transaction((txn) async {
-      await txn.insert('teams', team.toMap());
-      await txn.insert('matches', matchRecord.toMap());
-      for (final member in membersToInsert) {
-        await txn.insert('team_members', member.toMap());
-      }
-    });
+    await db.transaction((txn) async { // Asenkron işlemin tamamlanmasını bekler
+      await txn.insert('teams', team.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
+      await txn.insert('matches', matchRecord.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
+      for (final member in membersToInsert) { // Koleksiyon veya aralık üzerinde döngü başlatır
+        await txn.insert('team_members', member.toMap()); // SQLite veritabanı tablosuna yeni kayıt ekler
+      } // Açık olan kod/bileşen bloğunu kapatır
+    }); // İlgili kod satırını ve işlemi yürütür
 
-    return team;
-  }
+    return team; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<TeamModel?> getTeamById(String teamId) async {
-    final db = await appDatabase.database;
-    final rows = await db.query(
-      'teams',
-      where: 'id = ?',
-      whereArgs: [teamId],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    return _hydrateTeam(db, rows.first);
-  }
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<TeamModel?> getTeamById(String teamId) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: 'id = ?', // where özelliğini yapılandırır
+      whereArgs: [teamId], // whereArgs özelliğini yapılandırır
+      limit: 1, // limit özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    if (rows.isEmpty) return null; // Koşulun sağlanıp sağlanmadığını kontrol eder
+    return _hydrateTeam(db, rows.first); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  Future<TeamModel> _hydrateTeam(
-    DatabaseExecutor db,
-    Map<String, Object?> teamRow,
-  ) async {
-    final teamId = teamRow['id'] as String;
-    final captainId = teamRow['captainId'] as String;
+  Future<TeamModel> _hydrateTeam( // İlgili kod satırını ve işlemi yürütür
+    DatabaseExecutor db, // İlgili kod satırını ve işlemi yürütür
+    Map<String, Object?> teamRow, // İlgili kod satırını ve işlemi yürütür
+  ) async { // İlgili kod satırını ve işlemi yürütür
+    final teamId = teamRow['id'] as String; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final captainId = teamRow['captainId'] as String; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    final userRows = await db.query(
-      'users',
-      where: 'id = ?',
-      whereArgs: [captainId],
-      limit: 1,
-    );
-    String captainName = 'Takım Kaptanı';
-    if (userRows.isNotEmpty) {
-      final first = userRows.first['firstName'] as String? ?? '';
-      final last = userRows.first['lastName'] as String? ?? '';
-      captainName = '$first $last'.trim();
-    }
+    final userRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'users', // İlgili kod satırını ve işlemi yürütür
+      where: 'id = ?', // where özelliğini yapılandırır
+      whereArgs: [captainId], // whereArgs özelliğini yapılandırır
+      limit: 1, // limit özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    String captainName = 'Takım Kaptanı'; // İlgili kod satırını ve işlemi yürütür
+    if (userRows.isNotEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+      final first = userRows.first['firstName'] as String? ?? ''; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+      final last = userRows.first['lastName'] as String? ?? ''; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+      captainName = '$first $last'.trim(); // İlgili kod satırını ve işlemi yürütür
+    } // Açık olan kod/bileşen bloğunu kapatır
 
-    final memberRows = await db.query(
-      'team_members',
-      where: 'teamId = ?',
-      whereArgs: [teamId],
-      orderBy: 'joinedAt ASC',
-    );
-    final members = memberRows.map(TeamMemberModel.fromMap).toList();
+    final memberRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'team_members', // İlgili kod satırını ve işlemi yürütür
+      where: 'teamId = ?', // where özelliğini yapılandırır
+      whereArgs: [teamId], // whereArgs özelliğini yapılandırır
+      orderBy: 'joinedAt ASC', // orderBy özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    final members = memberRows.map(TeamMemberModel.fromMap).toList(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    return TeamModel.fromMap(
-      teamRow,
-      captainName: captainName,
-      members: members,
-    );
-  }
+    return TeamModel.fromMap( // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+      teamRow, // İlgili kod satırını ve işlemi yürütür
+      captainName: captainName, // captainName özelliğini yapılandırır
+      members: members, // members özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<List<TeamModel>> getUserAppointments(String userId) async {
-    final db = await appDatabase.database;
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<List<TeamModel>> getUserAppointments(String userId) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
     // Kullanıcının sildiği randevuları hariç tut
-    final dismissedRows = await db.query(
-      'dismissed_appointments',
-      where: 'userId = ?',
-      whereArgs: [userId],
-    );
-    final dismissedTeamIds =
-        dismissedRows.map((r) => r['teamId'] as String).toSet();
+    final dismissedRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'dismissed_appointments', // İlgili kod satırını ve işlemi yürütür
+      where: 'userId = ?', // where özelliğini yapılandırır
+      whereArgs: [userId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    final dismissedTeamIds = // Sabit/final değişken veya nesne tanımını başlatır
+        dismissedRows.map((r) => r['teamId'] as String).toSet(); // İlgili kod satırını ve işlemi yürütür
 
     // Kullanıcının kaptan olduğu veya üye olduğu takımlar
-    final memberTeamRows = await db.query(
-      'team_members',
-      columns: ['teamId'],
-      where: 'userId = ?',
-      whereArgs: [userId],
-    );
-    final captainTeamRows = await db.query(
-      'teams',
-      columns: ['id'],
-      where: 'captainId = ?',
-      whereArgs: [userId],
-    );
+    final memberTeamRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'team_members', // İlgili kod satırını ve işlemi yürütür
+      columns: ['teamId'], // columns özelliğini yapılandırır
+      where: 'userId = ?', // where özelliğini yapılandırır
+      whereArgs: [userId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    final captainTeamRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      columns: ['id'], // columns özelliğini yapılandırır
+      where: 'captainId = ?', // where özelliğini yapılandırır
+      whereArgs: [userId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final teamIds = <String>{
-      ...memberTeamRows.map((r) => r['teamId'] as String),
-      ...captainTeamRows.map((r) => r['id'] as String),
-    }.difference(dismissedTeamIds);
+    final teamIds = <String>{ // Sabit/final değişken veya nesne tanımını başlatır
+      ...memberTeamRows.map((r) => r['teamId'] as String), // İlgili kod satırını ve işlemi yürütür
+      ...captainTeamRows.map((r) => r['id'] as String), // İlgili kod satırını ve işlemi yürütür
+    }.difference(dismissedTeamIds); // İlgili kod satırını ve işlemi yürütür
 
-    if (teamIds.isEmpty) return [];
+    if (teamIds.isEmpty) return []; // Koşulun sağlanıp sağlanmadığını kontrol eder
 
-    final placeholders = List.filled(teamIds.length, '?').join(',');
-    final teamRows = await db.query(
-      'teams',
-      where: 'id IN ($placeholders)',
-      whereArgs: teamIds.toList(),
-      orderBy: 'matchDate ASC, startTime ASC, createdAt DESC',
-    );
+    final placeholders = List.filled(teamIds.length, '?').join(','); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final teamRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: 'id IN ($placeholders)', // where özelliğini yapılandırır
+      whereArgs: teamIds.toList(), // whereArgs özelliğini yapılandırır
+      orderBy: 'matchDate ASC, startTime ASC, createdAt DESC', // orderBy özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final result = <TeamModel>[];
-    for (final row in teamRows) {
-      result.add(await _hydrateTeam(db, row));
-    }
-    return result;
-  }
+    final result = <TeamModel>[]; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    for (final row in teamRows) { // Koleksiyon veya aralık üzerinde döngü başlatır
+      result.add(await _hydrateTeam(db, row)); // İlgili kod satırını ve işlemi yürütür
+    } // Açık olan kod/bileşen bloğunu kapatır
+    return result; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<List<TeamModel>> getCaptainTeams(String captainId) async {
-    final db = await appDatabase.database;
-    final dismissedRows = await db.query(
-      'dismissed_appointments',
-      where: 'userId = ?',
-      whereArgs: [captainId],
-    );
-    final dismissedTeamIds =
-        dismissedRows.map((r) => r['teamId'] as String).toSet();
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<List<TeamModel>> getCaptainTeams(String captainId) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final dismissedRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'dismissed_appointments', // İlgili kod satırını ve işlemi yürütür
+      where: 'userId = ?', // where özelliğini yapılandırır
+      whereArgs: [captainId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    final dismissedTeamIds = // Sabit/final değişken veya nesne tanımını başlatır
+        dismissedRows.map((r) => r['teamId'] as String).toSet(); // İlgili kod satırını ve işlemi yürütür
 
-    final rows = await db.query(
-      'teams',
-      where: 'captainId = ? AND status = ?',
-      whereArgs: [captainId, 'active'],
-      orderBy: 'createdAt DESC',
-    );
+    final rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: 'captainId = ? AND status = ?', // where özelliğini yapılandırır
+      whereArgs: [captainId, 'active'], // whereArgs özelliğini yapılandırır
+      orderBy: 'createdAt DESC', // orderBy özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final result = <TeamModel>[];
-    for (final row in rows) {
-      final id = row['id'] as String;
-      if (!dismissedTeamIds.contains(id)) {
-        result.add(await _hydrateTeam(db, row));
-      }
-    }
-    return result;
-  }
+    final result = <TeamModel>[]; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    for (final row in rows) { // Koleksiyon veya aralık üzerinde döngü başlatır
+      final id = row['id'] as String; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+      if (!dismissedTeamIds.contains(id)) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        result.add(await _hydrateTeam(db, row)); // İlgili kod satırını ve işlemi yürütür
+      } // Açık olan kod/bileşen bloğunu kapatır
+    } // Açık olan kod/bileşen bloğunu kapatır
+    return result; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<List<TeamModel>> getUserChatTeams(String userId) async {
-    final db = await appDatabase.database;
-    final memberRows = await db.query(
-      'team_members',
-      columns: ['teamId'],
-      where: 'userId = ?',
-      whereArgs: [userId],
-    );
-    final captainRows = await db.query(
-      'teams',
-      columns: ['id'],
-      where: 'captainId = ?',
-      whereArgs: [userId],
-    );
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<List<TeamModel>> getUserChatTeams(String userId) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final memberRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'team_members', // İlgili kod satırını ve işlemi yürütür
+      columns: ['teamId'], // columns özelliğini yapılandırır
+      where: 'userId = ?', // where özelliğini yapılandırır
+      whereArgs: [userId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    final captainRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      columns: ['id'], // columns özelliğini yapılandırır
+      where: 'captainId = ?', // where özelliğini yapılandırır
+      whereArgs: [userId], // whereArgs özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final teamIds = <String>{
-      ...memberRows.map((r) => r['teamId'] as String),
-      ...captainRows.map((r) => r['id'] as String),
-    };
+    final teamIds = <String>{ // Sabit/final değişken veya nesne tanımını başlatır
+      ...memberRows.map((r) => r['teamId'] as String), // İlgili kod satırını ve işlemi yürütür
+      ...captainRows.map((r) => r['id'] as String), // İlgili kod satırını ve işlemi yürütür
+    }; // Açık olan kod/bileşen bloğunu kapatır
 
-    if (teamIds.isEmpty) return [];
+    if (teamIds.isEmpty) return []; // Koşulun sağlanıp sağlanmadığını kontrol eder
 
-    final placeholders = List.filled(teamIds.length, '?').join(',');
-    final rows = await db.query(
-      'teams',
-      where: 'id IN ($placeholders)',
-      whereArgs: teamIds.toList(),
-      orderBy: 'createdAt DESC',
-    );
+    final placeholders = List.filled(teamIds.length, '?').join(','); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final rows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: 'id IN ($placeholders)', // where özelliğini yapılandırır
+      whereArgs: teamIds.toList(), // whereArgs özelliğini yapılandırır
+      orderBy: 'createdAt DESC', // orderBy özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
 
-    final result = <TeamModel>[];
-    for (final row in rows) {
-      result.add(await _hydrateTeam(db, row));
-    }
-    return result;
-  }
+    final result = <TeamModel>[]; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    for (final row in rows) { // Koleksiyon veya aralık üzerinde döngü başlatır
+      result.add(await _hydrateTeam(db, row)); // İlgili kod satırını ve işlemi yürütür
+    } // Açık olan kod/bileşen bloğunu kapatır
+    return result; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<void> deleteAppointmentForUser({
-    required String teamId,
-    required String userId,
-  }) async {
-    final db = await appDatabase.database;
-    final now = DateTime.now().toIso8601String();
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<void> deleteAppointmentForUser({ // İlgili kod satırını ve işlemi yürütür
+    required String teamId, // İlgili kod satırını ve işlemi yürütür
+    required String userId, // İlgili kod satırını ve işlemi yürütür
+  }) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final now = DateTime.now().toIso8601String(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
 
-    await db.transaction((txn) async {
-      await txn.insert(
-        'dismissed_appointments',
-        {
-          'userId': userId,
-          'teamId': teamId,
-          'dismissedAt': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+    await db.transaction((txn) async { // Asenkron işlemin tamamlanmasını bekler
+      await txn.insert( // SQLite veritabanı tablosuna yeni kayıt ekler
+        'dismissed_appointments', // İlgili kod satırını ve işlemi yürütür
+        { // İlgili kod satırını ve işlemi yürütür
+          'userId': userId, // 'userId' özelliğini yapılandırır
+          'teamId': teamId, // 'teamId' özelliğini yapılandırır
+          'dismissedAt': now, // 'dismissedAt' özelliğini yapılandırır
+        }, // Açık olan kod/bileşen bloğunu kapatır
+        conflictAlgorithm: ConflictAlgorithm.replace, // conflictAlgorithm özelliğini yapılandırır
+      ); // Açık olan kod/bileşen bloğunu kapatır
 
       // Eğer silen kişi kaptan ise ve henüz başka hiçbir kayıtlı üye katılmamışsa bekleyen davetleri iptal et
-      final teamRows = await txn.query(
-        'teams',
-        where: 'id = ?',
-        whereArgs: [teamId],
-        limit: 1,
-      );
-      if (teamRows.isNotEmpty && teamRows.first['captainId'] == userId) {
-        final otherMembers = await txn.query(
-          'team_members',
-          where: 'teamId = ? AND userId IS NOT NULL AND userId != ?',
-          whereArgs: [teamId, userId],
-        );
-        if (otherMembers.isEmpty) {
-          await txn.update(
-            'invitations',
-            {
-              'status': 'Cancelled',
-              'respondedAt': now,
-            },
-            where: 'teamId = ? AND status = ?',
-            whereArgs: [teamId, 'Pending'],
-          );
-        }
-      }
-    });
-  }
+      final teamRows = await txn.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+        'teams', // İlgili kod satırını ve işlemi yürütür
+        where: 'id = ?', // where özelliğini yapılandırır
+        whereArgs: [teamId], // whereArgs özelliğini yapılandırır
+        limit: 1, // limit özelliğini yapılandırır
+      ); // Açık olan kod/bileşen bloğunu kapatır
+      if (teamRows.isNotEmpty && teamRows.first['captainId'] == userId) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+        final otherMembers = await txn.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+          'team_members', // İlgili kod satırını ve işlemi yürütür
+          where: 'teamId = ? AND userId IS NOT NULL AND userId != ?', // where özelliğini yapılandırır
+          whereArgs: [teamId, userId], // whereArgs özelliğini yapılandırır
+        ); // Açık olan kod/bileşen bloğunu kapatır
+        if (otherMembers.isEmpty) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+          await txn.update( // Veritabanındaki mevcut kaydı günceller
+            'invitations', // İlgili kod satırını ve işlemi yürütür
+            { // İlgili kod satırını ve işlemi yürütür
+              'status': 'Cancelled', // 'status' özelliğini yapılandırır
+              'respondedAt': now, // 'respondedAt' özelliğini yapılandırır
+            }, // Açık olan kod/bileşen bloğunu kapatır
+            where: 'teamId = ? AND status = ?', // where özelliğini yapılandırır
+            whereArgs: [teamId, 'Pending'], // whereArgs özelliğini yapılandırır
+          ); // Açık olan kod/bileşen bloğunu kapatır
+        } // Açık olan kod/bileşen bloğunu kapatır
+      } // Açık olan kod/bileşen bloğunu kapatır
+    }); // İlgili kod satırını ve işlemi yürütür
+  } // Açık olan kod/bileşen bloğunu kapatır
 
-  @override
-  Future<bool> isUserMemberOfTeam({
-    required String teamId,
-    required String userId,
-  }) async {
-    final db = await appDatabase.database;
-    final captainRows = await db.query(
-      'teams',
-      where: 'id = ? AND captainId = ?',
-      whereArgs: [teamId, userId],
-      limit: 1,
-    );
-    if (captainRows.isNotEmpty) return true;
+  @override // Üst sınıftan gelen metodu geçersiz kıldığını (override) belirtir
+  Future<bool> isUserMemberOfTeam({ // İlgili kod satırını ve işlemi yürütür
+    required String teamId, // İlgili kod satırını ve işlemi yürütür
+    required String userId, // İlgili kod satırını ve işlemi yürütür
+  }) async { // İlgili kod satırını ve işlemi yürütür
+    final db = await appDatabase.database; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+    final captainRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'teams', // İlgili kod satırını ve işlemi yürütür
+      where: 'id = ? AND captainId = ?', // where özelliğini yapılandırır
+      whereArgs: [teamId, userId], // whereArgs özelliğini yapılandırır
+      limit: 1, // limit özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    if (captainRows.isNotEmpty) return true; // Koşulun sağlanıp sağlanmadığını kontrol eder
 
-    final memberRows = await db.query(
-      'team_members',
-      where: 'teamId = ? AND userId = ?',
-      whereArgs: [teamId, userId],
-      limit: 1,
-    );
-    return memberRows.isNotEmpty;
-  }
-}
+    final memberRows = await db.query( // SQLite veritabanı tablosundan koşullu veri sorgular
+      'team_members', // İlgili kod satırını ve işlemi yürütür
+      where: 'teamId = ? AND userId = ?', // where özelliğini yapılandırır
+      whereArgs: [teamId, userId], // whereArgs özelliğini yapılandırır
+      limit: 1, // limit özelliğini yapılandırır
+    ); // Açık olan kod/bileşen bloğunu kapatır
+    return memberRows.isNotEmpty; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+  } // Açık olan kod/bileşen bloğunu kapatır
+} // Açık olan kod/bileşen bloğunu kapatır
