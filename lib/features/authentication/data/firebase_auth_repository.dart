@@ -117,6 +117,10 @@ class FirebaseAuthRepository implements AuthRepository {
 
     final resolvedPhone =
         user.phone.trim().isNotEmpty ? user.phone.trim() : existingPhone;
+    // SQLite `users.phone` sütunu UNIQUE olduğu için telefon bilgisi olmayan harici Auth
+    // hesaplarının birbirini ezmemesi adına benzersiz yer tutucu kullanılır.
+    final sqliteSafePhone =
+        resolvedPhone.isNotEmpty ? resolvedPhone : 'UNSET_${user.id}';
     final resolvedPasswordHash = existingPasswordHash.isNotEmpty &&
             existingPasswordHash != 'FIREBASE_AUTH_MANAGED'
         ? existingPasswordHash
@@ -129,7 +133,7 @@ class FirebaseAuthRepository implements AuthRepository {
         'firstName': user.firstName,
         'lastName': user.lastName,
         'email': user.email.toLowerCase().trim(),
-        'phone': resolvedPhone,
+        'phone': sqliteSafePhone,
         'passwordHash': resolvedPasswordHash,
         'profileImage': user.profileImage ?? existingRow?['profileImage'],
         'themeMode': user.themeMode,
@@ -166,8 +170,11 @@ class FirebaseAuthRepository implements AuthRepository {
     );
     if (rows.isEmpty) return null;
     final baseUser = UserModel.fromMap(rows.first);
+    final sanitizedPhone =
+        baseUser.phone.startsWith('UNSET_') ? '' : baseUser.phone;
     final consents = await _getVerifiedLocalConsents(userId);
     return baseUser.copyWith(
+      phone: sanitizedPhone,
       termsAccepted: consents.termsAccepted,
       kvkkAccepted: consents.kvkkAccepted,
     );

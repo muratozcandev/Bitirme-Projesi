@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hali_saha_7v7/core/errors/app_exception.dart';
+import 'package:hali_saha_7v7/core/utils/firebase_auth_import_preparer.dart';
 import 'package:hali_saha_7v7/data/database/app_database.dart';
 import 'package:hali_saha_7v7/features/authentication/data/firebase_auth_repository.dart';
 import 'package:hali_saha_7v7/features/authentication/data/local_auth_repository.dart';
@@ -708,6 +709,189 @@ void main() {
       expect(normalLogin.phone, '05222222222');
       expect(normalLogin.termsAccepted, isTrue);
       expect(normalLogin.kvkkAccepted, isTrue);
+    });
+
+    test(
+        'FirebaseAuthImportPreparer 10 hazır test hesabının SHA256 (SALT_FIRST, rounds=1) Base64 değerlerini ve çakışma kontrolünü doğrulamalı',
+        () {
+      final verified = FirebaseAuthImportPreparer.verifyAllTenSeedUsers();
+      expect(verified.length, 10);
+      expect(
+        FirebaseAuthImportPreparer.effectiveSaltBase64,
+        'N3Y3X2hhbGlfc2FoYV9zZWN1cmVfc2FsdF92MTo=',
+      );
+
+      final payload = FirebaseAuthImportPreparer.buildImportJsonPayload();
+      final users = payload['users'] as List<dynamic>;
+      expect(users.length, 10);
+      expect(
+        users.map((e) => (e as Map)['localId']).toList(),
+        [
+          'seed_user_1',
+          'seed_user_2',
+          'seed_user_3',
+          'seed_user_4',
+          'seed_user_5',
+          'seed_user_6',
+          'seed_user_7',
+          'seed_user_8',
+          'seed_user_9',
+          'seed_user_10',
+        ],
+      );
+
+      // Mevcut 1 yabancı Firebase kullanıcısı varken çakışma olmamalı
+      final noCollisions =
+          FirebaseAuthImportPreparer.checkCollisionsWithExistingUsers([
+        {
+          'localId': 'existing_real_user_uid_abc123',
+          'email': 'gercek.kullanici@example.com',
+        },
+      ]);
+      expect(noCollisions, isEmpty);
+
+      // Çakışma senaryosu doğru yakalanmalı
+      final withCollisions =
+          FirebaseAuthImportPreparer.checkCollisionsWithExistingUsers([
+        {
+          'localId': 'seed_user_1',
+          'email': 'cr7@gmail.com',
+        },
+      ]);
+      expect(withCollisions.length, 2);
+    });
+
+    test(
+        '10 hazır test hesabının tamamı (seed_user_1 .. seed_user_10) ve mevcut orkun@gmail.com hesabı ilk girişte Firestore ile uyumlu çalışmalı ve SQLite verilerini korumalı',
+        () async {
+      final prefs = await SharedPreferences.getInstance();
+      final fakeAuth = FakeFirebaseAuth();
+      final fakeFirestore = RuleEnforcingFakeFirestore(auth: fakeAuth);
+      final fbRepo = FirebaseAuthRepository(
+        firebaseAuth: fakeAuth,
+        firestore: fakeFirestore,
+        appDatabase: db,
+        prefs: prefs,
+      );
+
+      // 1. Mevcut `orkun@gmail.com` hesabını oluştur ve doğrula
+      final orkunReg = await fbRepo.register(
+        firstName: 'orkun',
+        lastName: 'kokcu',
+        email: 'orkun@gmail.com',
+        phone: '05309998877',
+        password: 'password123',
+        acceptedUserAgreement: true,
+        acceptedKvkk: true,
+      );
+
+      // 2. 10 hazır test hesabını (`seed_user_1` .. `seed_user_10`) Firebase Auth'a aktarılmış olarak ekle
+      for (final spec in FirebaseAuthImportPreparer.seedUserSpecs) {
+        fakeAuth.seedImportedAccount(
+          uid: spec.id,
+          email: spec.email,
+          password: spec.plainPasswordForVerification,
+          displayName: spec.fullName,
+        );
+      }
+
+      // 3. Senkronizasyon öncesinde SQLite üzerinde `seed_user_1` (CR7) ve `seed_user_2` (Messi)
+      // arasında bir takım, davet, randevu, bildirim ve sohbet mesajı oluştur
+      final preTeam = await teamRepo.createTeam(
+        captainId: 'seed_user_1',
+        captainName: 'cristiano Ronaldo',
+        formation: Formation.twoThreeOne,
+        province: 'İstanbul',
+        district: 'Beşiktaş',
+        venueName: 'Beşiktaş Arena 7v7 Halı Saha (Test)',
+        matchDate: '2027-06-15',
+        startTime: '21.00',
+        endTime: '22.00',
+        lineup: {'FWD_1': 'cristiano Ronaldo'},
+        captainPositionKey: 'FWD_1',
+      );
+      final preInvite = await invitationRepo.sendInvitation(
+        teamId: preTeam.id,
+        senderId: 'seed_user_1',
+        receiverId: 'seed_user_2',
+        positionKey: 'MID_1',
+      );
+      await invitationRepo.acceptInvitation(
+        invitationId: preInvite.id,
+        currentUserId: 'seed_user_2',
+      );
+      await chatRepo.sendMessage(
+        teamId: preTeam.id,
+        senderId: 'seed_user_1',
+        content: 'Senkronizasyon öncesi mesaj',
+      );
+
+      // 4. 10 hazır test hesabının tamamıyla sırayla ilk giriş yap ve Firestore atomik transaction senkronizasyonunu doğrula
+      for (final spec in FirebaseAuthImportPreparer.seedUserSpecs) {
+        final loggedIn = await fbRepo.login(
+          identifier: spec.email,
+          password: spec.plainPasswordForVerification,
+        );
+
+        expect(loggedIn.id, spec.id);
+        expect(loggedIn.firstName, spec.firstName);
+        expect(loggedIn.lastName, spec.lastName);
+        expect(loggedIn.email, spec.email);
+        expect(loggedIn.phone, spec.phone);
+        expect(loggedIn.termsAccepted, isFalse);
+        expect(loggedIn.kvkkAccepted, isFalse);
+
+        final userDoc = fakeFirestore.rawDoc('users', spec.id);
+        expect(userDoc, isNotNull);
+        expect(userDoc!['uid'], spec.id);
+        expect(userDoc['phone'], spec.phone);
+        expect(userDoc.containsKey('password'), isFalse);
+        expect(userDoc.containsKey('passwordHash'), isFalse);
+
+        final phoneDoc = fakeFirestore.rawDoc('phone_lookup', spec.phone);
+        expect(phoneDoc, isNotNull);
+        expect(phoneDoc!['uid'], spec.id);
+        expect(phoneDoc['phone'], spec.phone);
+
+        await fbRepo.logout();
+      }
+
+      // 5. Mevcut `orkun@gmail.com` hesabının girişi ve profili bozulmadan çalışmalı
+      final orkunLogin = await fbRepo.login(
+        identifier: 'orkun@gmail.com',
+        password: 'password123',
+      );
+      expect(orkunLogin.id, orkunReg.id);
+      expect(orkunLogin.email, 'orkun@gmail.com');
+      expect(orkunLogin.phone, '05309998877');
+      expect(orkunLogin.termsAccepted, isTrue);
+      expect(orkunLogin.kvkkAccepted, isTrue);
+      await fbRepo.logout();
+
+      // 6. SQLite üzerindeki mevcut takım, randevu, davet, bildirim ve sohbet verileri eksiksiz korunmuş olmalı
+      final cr7After = await fbRepo.login(
+        identifier: 'cr7@gmail.com',
+        password: 'cris7',
+      );
+      expect(cr7After.id, 'seed_user_1');
+
+      final cr7Appointments = await teamRepo.getUserAppointments('seed_user_1');
+      final messiAppointments =
+          await teamRepo.getUserAppointments('seed_user_2');
+      expect(cr7Appointments.length, 1);
+      expect(messiAppointments.length, 1);
+
+      final chatMessages = await chatRepo.getTeamMessages(
+        teamId: preTeam.id,
+        requesterId: 'seed_user_1',
+      );
+      expect(chatMessages.length, 1);
+      expect(chatMessages.first.content, 'Senkronizasyon öncesi mesaj');
+      expect(chatMessages.first.senderName, 'cristiano Ronaldo');
+
+      final cr7Notifications =
+          await notificationRepo.getUserNotifications('seed_user_1');
+      expect(cr7Notifications, isNotEmpty);
     });
   });
 }

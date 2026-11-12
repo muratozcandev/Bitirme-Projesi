@@ -272,4 +272,42 @@ Mevcut uygulama mimarisi `PROJECT.md` (Aşama 2) ve `SKILL.md` (Bölüm 5 & 20) 
   4. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
      - Firestore profili olmayan seed kullanıcısının SQLite profilinden senkronizasyonu, telefon numarasının boş değerle ezilmemesi, UID korunumu, mevcut Firestore belgesinin tekrar yazılmaması, başka kullanıcıya ait telefon numarası çakışmasının engellenmesi ve normal Firebase kullanıcılarının girişinin çalışmaya devam etmesi testleri eklendi.
 
+---
+
+## GÜNCELLEME 7 — 10 Hazır Test Hesabının Firebase Auth Import Hazırlığı, `.gitignore` Koruması, Yedekleme ve Çakışma Doğrulaması
+- **Durum:** Tamamlandı (Aktarım Öncesi Onay Bekleniyor)
+- **Yapılan İşlemler:**
+  1. [.gitignore](file:///c:/Users/Murat/Desktop/7v7/.gitignore):
+     - `seed_users_auth.json`, `existing_firebase_users_backup*.json`, `*firebase-adminsdk*.json`, `*service-account*.json`, `*serviceAccount*.json` ve `.env*` gibi tüm kimlik doğrulama import/export ve servis anahtarı dosyalarını Git/GitHub'a yüklenmekten koruyan kurallar eklendi.
+  2. [lib/core/utils/firebase_auth_import_preparer.dart](file:///c:/Users/Murat/Desktop/7v7/lib/core/utils/firebase_auth_import_preparer.dart) & [tool/prepare_seed_users_auth.dart](file:///c:/Users/Murat/Desktop/7v7/tool/prepare_seed_users_auth.dart):
+     - `SeedData.predefinedUsers` içerisindeki 10 hazır test hesabının (`seed_user_1` .. `seed_user_10`) SHA-256 hex özetlerini (`PasswordHasher.hash()`) 32 ham byte Base64 formatına dönüştüren, Firebase CLI `SHA256` (`SALT_FIRST`, `rounds=1`, `salt="N3Y3X2hhbGlfc2FoYV9zZWN1cmVfc2FsdF92MTo="`) çıktısıyla %100 eşleşmesini doğrulayan, `seed_users_auth.json` dosyasını oluşturan ve mevcut Firebase kullanıcılarıyla çakışma kontrolü yapan hazırlık aracı oluşturuldu.
+  3. **Mevcut Firebase Kullanıcısı Yedeği ve Çakışma Kontrolü:**
+     - `firebase auth:export existing_firebase_users_backup.json --format=json --project=v7-app-341ae` komutuyla mevcut 1 Firebase Auth kullanıcısının tam yedeği alındı ve 10 hazır test hesabıyla (`seed_user_1` .. `seed_user_10`) hiçbir UID veya e-posta çakışması olmadığı doğrulandı.
+     - Henüz `firebase auth:import` çalıştırılmadı; mevcut kullanıcıya dokunulmadı.
+
+---
+
+## GÜNCELLEME 8 — 10 Hazır Test Hesabının Firebase Authentication'a Aktarımı ve Doğrulanması
+- **Durum:** Tamamlandı ve Doğrulandı
+- **Yapılan İşlemler:**
+  1. `firebase auth:import seed_users_auth.json --hash-algo=SHA256 --rounds=1 --hash-input-order=SALT_FIRST --project=v7-app-341ae` komutu çalıştırıldı.
+  2. **Sonuç:** 10 hesabın tamamı **başarıyla** içe aktarıldı (Başarılı: 10, Başarısız: 0).
+  3. `firebase auth:export firebase_auth_backup_after_import.json --format=json --project=v7-app-341ae` ile aktarım sonrası doğrulama yapıldı:
+     - Toplam kullanıcı sayısı: **11** (1 mevcut kullanıcı + 10 hazır test hesabı).
+     - `seed_user_1` .. `seed_user_10` UID değerlerinin, e-posta adreslerinin ve `displayName` bilgilerinin eksiksiz korunduğu doğrulandı.
+     - Mevcut Firebase kullanıcısının (`ZRhD3BxzUnQcThSM2r7bpiUA0DE2` - `orkun@gmail.com`) `localId`, `email`, `passwordHash`, `salt`, `createdAt` ve `lastSignedInAt` alanlarının hiçbir değişikliğe uğramadığı doğrulandı.
+
+---
+
+## GÜNCELLEME 9 — 10 Hazır Test Hesabının İlk Giriş Firestore Senkronizasyonu ve `orkun@gmail.com` / SQLite Uyumluluk Doğrulaması
+- **Durum:** Tamamlandı ve Doğrulandı
+- **Yapılan İşlemler:**
+  1. [lib/features/authentication/data/firebase_auth_repository.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/data/firebase_auth_repository.dart):
+     - `_syncProfileToLocalCache` içerisinde SQLite `users.phone` `UNIQUE` kısıtlamasına karşı koruma eklendi; `seed_user_1` .. `seed_user_10` ve `orkun@gmail.com` gibi hesapların SQLite önbelleklemesi sırasında hiçbir telefon numarası veya şifre özetinin ezilmemesi garanti altına alındı.
+  2. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
+     - `seed_user_1` .. `seed_user_10` hesaplarının tamamının ilk girişte SQLite/`SeedData` profil bilgilerini doğru aldığı, `users/{uid}` ve `phone_lookup/{phone}` belgelerini atomik transaction ve `firestore.rules` kurallarıyla tam uyumlu oluşturduğu, mevcut `orkun@gmail.com` hesabının sorunsuz çalıştığı ve SQLite üzerindeki takım, davet, randevu, bildirim ve sohbet mesajlarının eksiksiz korunduğu uçtan uca test edilerek doğrulandı.
+
+
+
+
 

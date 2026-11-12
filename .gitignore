@@ -46,3 +46,20 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Firebase Admin SDK Servis Hesabı Anahtarları ve Auth Import/Export Yedekleri
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceAccount*.json
+service_account*.json
+seed_users_auth.json
+existing_firebase_users_backup*.json
+firebase_auth_backup*.json
+auth_export*.json
+auth_import*.json
+*.pem
+*.p12
+*.key
+.env
+.env.*
+
