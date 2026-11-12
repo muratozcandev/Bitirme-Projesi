@@ -4,17 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart'; // Yerel anahtar-de
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // SQLite yerel veritabanı sürücüsünü içe aktarır
 import '../../../core/constants/app_constants.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../../../core/errors/app_exception.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../core/utils/password_hasher.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../../../core/utils/validators.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../../../data/database/app_database.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../../../data/seed/seed_data.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import '../../../shared/models/consent_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../../../shared/models/user_model.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 import '../domain/auth_repository.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
+import 'local_auth_repository.dart'; // İlgili proje modülünü veya bağımlılığını içe aktarır
 
 class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthRepository veri erişim (repository) sınıfını tanımlar
   final FirebaseAuth? _firebaseAuth; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
   final FirebaseFirestore? _firestore; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
   final AppDatabase appDatabase; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
   final SharedPreferences prefs; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+  late final LocalAuthRepository _localAuthRepository; // Çevrimdışı/yerel yedek kimlik doğrulama deposu
 
   FirebaseAuthRepository({ // İlgili kod satırını ve işlemi yürütür
     required FirebaseAuth? firebaseAuth, // İlgili kod satırını ve işlemi yürütür
@@ -22,7 +26,28 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
     required this.appDatabase, // appDatabase parametresinin dışarıdan zorunlu olarak verilmesini sağlar
     required this.prefs, // prefs parametresinin dışarıdan zorunlu olarak verilmesini sağlar
   })  : _firebaseAuth = firebaseAuth, // }) özelliğini yapılandırır
-        _firestore = firestore; // İlgili kod satırını ve işlemi yürütür
+        _firestore = firestore { // İlgili kod satırını ve işlemi yürütür
+    _localAuthRepository = LocalAuthRepository(
+      appDatabase: appDatabase,
+      prefs: prefs,
+    );
+  }
+
+  bool _isNetworkOrEnvironmentAuthError(FirebaseAuthException e) {
+    final code = e.code.toLowerCase();
+    return code == 'network-request-failed' ||
+        code == 'keychain-error' ||
+        code == 'internal-error' ||
+        code == 'unknown' ||
+        code == 'unavailable';
+  }
+
+  bool _isNetworkOrUnavailableFirestoreError(FirebaseException e) {
+    final code = e.code.toLowerCase();
+    return code == 'unavailable' ||
+        code == 'network-request-failed' ||
+        code == 'deadline-exceeded';
+  }
 
   FirebaseAuth get _auth { // İlgili kod satırını ve işlemi yürütür
     final instance = _firebaseAuth; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
@@ -121,10 +146,14 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
     // hesaplarının birbirini ezmemesi adına benzersiz yer tutucu kullanılır.
     final sqliteSafePhone = // Sabit/final değişken veya nesne tanımını başlatır
         resolvedPhone.isNotEmpty ? resolvedPhone : 'UNSET_${user.id}'; // İlgili kod satırını ve işlemi yürütür
-    final resolvedPasswordHash = existingPasswordHash.isNotEmpty && // Sabit/final değişken veya nesne tanımını başlatır
-            existingPasswordHash != 'FIREBASE_AUTH_MANAGED' // İlgili kod satırını ve işlemi yürütür
-        ? existingPasswordHash // İlgili kod satırını ve işlemi yürütür
-        : 'FIREBASE_AUTH_MANAGED'; // İlgili kod satırını ve işlemi yürütür
+    final providedPasswordHash = user.passwordHash.trim();
+    final resolvedPasswordHash = providedPasswordHash.isNotEmpty &&
+            providedPasswordHash != 'FIREBASE_AUTH_MANAGED'
+        ? providedPasswordHash
+        : (existingPasswordHash.isNotEmpty &&
+                existingPasswordHash != 'FIREBASE_AUTH_MANAGED'
+            ? existingPasswordHash
+            : 'FIREBASE_AUTH_MANAGED');
 
     await sqlite.insert( // SQLite veritabanı tablosuna yeni kayıt ekler
       'users', // İlgili kod satırını ve işlemi yürütür
@@ -222,11 +251,18 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
     final auth = _firebaseAuth; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
     final firestore = _firestore; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
     if (auth == null || firestore == null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
-      return null; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
+      return _localAuthRepository.getCurrentUser(); // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
     } // Açık olan kod/bileşen bloğunu kapatır
 
     final firebaseUser = auth.currentUser; // Değişmez (sabit/final) alanı veya değişkeni tanımlar
     if (firebaseUser == null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
+      final activeId = prefs.getString(AppConstants.prefActiveUserIdKey);
+      if (activeId != null && activeId.isNotEmpty) {
+        final localUser = await _getLocalCachedUser(activeId);
+        if (localUser != null) {
+          return localUser;
+        }
+      }
       await prefs.remove(AppConstants.prefActiveUserIdKey); // Asenkron işlemin tamamlanmasını bekler
       return null; // Hesaplanan değeri veya bileşeni çağrıldığı yere döndürür
     } // Açık olan kod/bileşen bloğunu kapatır
@@ -305,6 +341,13 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
       throw AppException(emailErr, code: 'invalid-email'); // İlgili hata nesnesini (Exception) fırlatır
     } // Açık olan kod/bileşen bloğunu kapatır
     final emailToSignIn = trimmed.toLowerCase(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+
+    if (_firebaseAuth == null || _firestore == null) {
+      return _localAuthRepository.login(
+        identifier: emailToSignIn,
+        password: password,
+      );
+    }
 
     try { // Hata yakalama (try) bloğunu başlatır
       // 1. Şifre doğrulaması yalnızca Firebase Authentication sunucuları tarafından yapılır
@@ -417,8 +460,53 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
       await prefs.remove(AppConstants.prefActiveUserIdKey); // Asenkron işlemin tamamlanmasını bekler
       rethrow; // Yakalanan hatayı üst katmana yeniden fırlatır
     } on FirebaseAuthException catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (_isNetworkOrEnvironmentAuthError(e)) {
+        return _localAuthRepository.login(
+          identifier: emailToSignIn,
+          password: password,
+        );
+      }
+      // Çevrimdışı yedek modda oluşturulmuş yerel hesap varsa onunla girişe izin ver
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        final sqlite = await appDatabase.database;
+        final localRows = await sqlite.query(
+          'users',
+          where: 'LOWER(email) = ?',
+          whereArgs: [emailToSignIn],
+          limit: 1,
+        );
+        if (localRows.isNotEmpty) {
+          final row = localRows.first;
+          final localId = (row['id'] as String?) ?? '';
+          final localHash = (row['passwordHash'] as String?) ?? '';
+          final isSeedAccount = RegExp(r'^seed_user_(10|[1-9])$').hasMatch(localId);
+          if (!isSeedAccount &&
+              localHash.isNotEmpty &&
+              localHash != 'FIREBASE_AUTH_MANAGED' &&
+              PasswordHasher.verify(password, localHash)) {
+            return _localAuthRepository.login(
+              identifier: emailToSignIn,
+              password: password,
+            );
+          }
+        }
+      }
       throw _mapFirebaseAuthException(e); // İlgili hata nesnesini (Exception) fırlatır
     } on FirebaseException catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (_isNetworkOrUnavailableFirestoreError(e)) {
+        final currentUid = _firebaseAuth?.currentUser?.uid;
+        if (currentUid != null) {
+          final cached = await _resolveLocalOrSeedProfile(currentUid);
+          if (cached != null) {
+            await prefs.setString(AppConstants.prefActiveUserIdKey, cached.id);
+            return cached;
+          }
+        }
+        return _localAuthRepository.login(
+          identifier: emailToSignIn,
+          password: password,
+        );
+      }
       if (_firebaseAuth?.currentUser != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
         await _firebaseAuth!.signOut(); // Aktif Firebase Authentication kullanıcı oturumunu kapatır
       } // Açık olan kod/bileşen bloğunu kapatır
@@ -473,6 +561,18 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
 
     final normalizedEmail = email.trim().toLowerCase(); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
     final normalizedPhone = Validators.normalizePhone(phone); // Değişmez (sabit/final) alanı veya değişkeni tanımlar
+
+    if (_firebaseAuth == null || _firestore == null) {
+      return _localAuthRepository.register(
+        firstName: firstName,
+        lastName: lastName,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        password: password,
+        acceptedUserAgreement: acceptedUserAgreement,
+        acceptedKvkk: acceptedKvkk,
+      );
+    }
 
     UserCredential? credential; // İlgili kod satırını ve işlemi yürütür
     try { // Hata yakalama (try) bloğunu başlatır
@@ -546,8 +646,75 @@ class FirebaseAuthRepository implements AuthRepository { // FirebaseAuthReposito
       } // Açık olan kod/bileşen bloğunu kapatır
       rethrow; // Yakalanan hatayı üst katmana yeniden fırlatır
     } on FirebaseAuthException catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (_isNetworkOrEnvironmentAuthError(e)) {
+        return _localAuthRepository.register(
+          firstName: firstName,
+          lastName: lastName,
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          password: password,
+          acceptedUserAgreement: acceptedUserAgreement,
+          acceptedKvkk: acceptedKvkk,
+        );
+      }
       throw _mapFirebaseAuthException(e); // İlgili hata nesnesini (Exception) fırlatır
     } on FirebaseException catch (e) { // Oluşan hatayı yakalayıp işleyen (catch) bloğu başlatır
+      if (_isNetworkOrUnavailableFirestoreError(e)) {
+        if (credential?.user != null) {
+          final uid = credential!.user!.uid;
+          final now = DateTime.now();
+          final fallbackUser = UserModel(
+            id: uid,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            passwordHash: PasswordHasher.hash(password),
+            themeMode: 'light',
+            createdAt: now,
+            termsAccepted: true,
+            kvkkAccepted: true,
+          );
+          await _syncProfileToLocalCache(fallbackUser);
+          final sqlite = await appDatabase.database;
+          await sqlite.insert(
+            'consents',
+            ConsentModel(
+              id: 'consent_terms_$uid',
+              userId: uid,
+              documentType: 'user_agreement',
+              documentVersion: '1.0',
+              accepted: true,
+              acceptedAt: now,
+            ).toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          await sqlite.insert(
+            'consents',
+            ConsentModel(
+              id: 'consent_kvkk_$uid',
+              userId: uid,
+              documentType: 'kvkk',
+              documentVersion: '1.0',
+              accepted: true,
+              acceptedAt: now,
+            ).toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          await _auth.signOut();
+          await prefs.remove(AppConstants.prefActiveUserIdKey);
+          return fallbackUser;
+        }
+        return _localAuthRepository.register(
+          firstName: firstName,
+          lastName: lastName,
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          password: password,
+          acceptedUserAgreement: acceptedUserAgreement,
+          acceptedKvkk: acceptedKvkk,
+        );
+      }
       if (credential?.user != null) { // Koşulun sağlanıp sağlanmadığını kontrol eder
         try { // Hata yakalama (try) bloğunu başlatır
           await credential!.user!.delete(); // Veritabanındaki kaydı veya hesabı siler
