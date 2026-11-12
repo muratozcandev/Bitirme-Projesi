@@ -428,8 +428,8 @@ class FirebaseAuthRepository implements AuthRepository {
       await prefs.setString(AppConstants.prefActiveUserIdKey, userModel.id);
       return userModel;
     } on AppException {
-      if (_firebaseAuth?.currentUser != null) {
-        await _firebaseAuth!.signOut();
+      if (_firebaseAuth.currentUser != null) {
+        await _firebaseAuth.signOut();
       }
       await prefs.remove(AppConstants.prefActiveUserIdKey);
       rethrow;
@@ -467,7 +467,7 @@ class FirebaseAuthRepository implements AuthRepository {
       throw _mapFirebaseAuthException(e);
     } on FirebaseException catch (e) {
       if (_isNetworkOrUnavailableFirestoreError(e)) {
-        final currentUid = _firebaseAuth?.currentUser?.uid;
+        final currentUid = _firebaseAuth.currentUser?.uid;
         if (currentUid != null) {
           final cached = await _resolveLocalOrSeedProfile(currentUid);
           if (cached != null) {
@@ -480,8 +480,8 @@ class FirebaseAuthRepository implements AuthRepository {
           password: password,
         );
       }
-      if (_firebaseAuth?.currentUser != null) {
-        await _firebaseAuth!.signOut();
+      if (_firebaseAuth.currentUser != null) {
+        await _firebaseAuth.signOut();
       }
       await prefs.remove(AppConstants.prefActiveUserIdKey);
       throw AppException(
