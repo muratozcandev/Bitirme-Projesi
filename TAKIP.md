@@ -197,3 +197,79 @@ Mevcut uygulama mimarisi `PROJECT.md` (Aşama 2) ve `SKILL.md` (Bölüm 5 & 20) 
 - **Yapılan İşlem:**
   - [login_screen.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/presentation/login_screen.dart) içerisindeki "Önceden Kayıtlı 10 Test Hesabı" kartı kaldırıldı (`SKILL.md` Bölüm 6: "Kullanıcı bilgilerini ekranların içerisine doğrudan yazma" kuralıyla da tam uyumlu hale getirildi).
   - [seed_data.dart](file:///c:/Users/Murat/Desktop/7v7/lib/data/seed/seed_data.dart) ve SQLite `users` tablosundaki 10 hazır test hesabı aynen korundu; kullanıcılar e-posta veya telefon numarası ve şifrelerini yazarak giriş yapabilir.
+
+---
+
+### Aşama 2 Başlangıcı — Firebase Bağlantı Kontrolü ve Doğrulaması
+- **İncelenen Yapılandırma Dosyaları:**
+  - `pubspec.yaml`: `firebase_core: ^5.1.0`, `firebase_auth: ^7.0.1` ve `cloud_firestore: ^7.1.0` paketleri doğrulandı.
+  - `lib/firebase_options.dart`: FlutterFire CLI tarafından oluşturulan `v7-app-341ae` (`7v7-app`) proje yapılandırması (`android`, `ios`, `macos`, `web`, `windows`) doğrulandı.
+  - `android/app/google-services.json`, `android/app/build.gradle.kts` ve `android/settings.gradle.kts`: `com.google.gms.google-services` (`4.4.4`) eklentisi ve `com.sevenVseven.app.hali_saha_7v7` paket kimliği uyumu doğrulandı.
+- **Değiştirilen Dosyalar ve Yapılan İşlemler:**
+  1. [lib/main.dart](file:///c:/Users/Murat/Desktop/7v7/lib/main.dart):
+     - `_initializeAndVerifyFirebase()` fonksiyonu ile `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` güvenli şekilde (`Firebase.apps.isEmpty` kontrolü ve hata yakalama ile) başlatıldı; `FirebaseAuth.instanceFor` ve `FirebaseFirestore.instanceFor` bağlantıları doğrulanarak konsola proje kimliği (`v7-app-341ae`) loglandı.
+     - Mevcut `AppDatabase.instance.database` (SQLite), `SharedPreferences`, `authProvider.notifier.initializeSession()`, `UncontrolledProviderScope` ve `SevenVSevenApp` akışı olduğu gibi korundu.
+  2. [lib/shared/providers/app_providers.dart](file:///c:/Users/Murat/Desktop/7v7/lib/shared/providers/app_providers.dart):
+     - Mevcut yerel repository'lere (`LocalAuthRepository`, `LocalTeamRepository`, `LocalInvitationRepository`, `LocalNotificationRepository`, `LocalChatRepository`, `LocalLocationRepository`), GoRouter ve Tema sistemine dokunulmadan merkezi `firebaseInitializedProvider`, `firebaseAppProvider`, `firebaseAuthInstanceProvider` ve `firestoreInstanceProvider` tanımlandı.
+  3. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
+     - `DefaultFirebaseOptions` yapılandırma doğrulama testi eklendi.
+
+---
+
+### Aşama 2.1 — Kullanıcı Kayıt ve Giriş Sisteminin Firebase Authentication & Cloud Firestore'a Taşınması
+- **Değiştirilen / Eklenen Dosyalar:**
+  1. [lib/shared/models/user_model.dart](file:///c:/Users/Murat/Desktop/7v7/lib/shared/models/user_model.dart):
+     - `termsAccepted` ve `kvkkAccepted` alanları eklendi.
+     - `toFirestoreMap()` ve `UserModel.fromFirestore()` metotları eklendi (`uid`, `firstName`, `lastName`, `email`, `phone`, `createdAt`, `termsAccepted`, `kvkkAccepted` alanlarını içerir; `password` veya `passwordHash` alanı kesinlikle Firestore'a yazılmaz).
+  2. [lib/features/authentication/data/firebase_auth_repository.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/data/firebase_auth_repository.dart):
+     - `AuthRepository` arayüzünü gerçekleyen `FirebaseAuthRepository` oluşturuldu.
+     - **Kayıt (`register`):** Ad, Soyad, E-posta, Telefon, Şifre (en az 6 karakter), Kullanıcı Sözleşmesi ve KVKK onaylarını doğrular. `FirebaseAuth.createUserWithEmailAndPassword` ile kullanıcıyı oluşturur; ardından atomik **Firestore Transaction** (`_db.runTransaction`) ile `phone_lookup/{normalizedPhone}` (telefon benzersizliği ve eşleştirme indeksi) ve `users/{uid}` belgelerini oluşturur. Herhangi bir çakışmada oluşturulan Auth kaydını geri alır (`user.delete()`). Kayıt sonunda oturumu kapatarak kullanıcıyı giriş ekranına yönlendirir.
+     - **Giriş (`login`):** E-posta girilmişse doğrudan, telefon numarası girilmişse önce Firestore `phone_lookup/{normalizedPhone}` (ve yedek olarak `users`) üzerinden e-posta adresini çözümleyerek `FirebaseAuth.signInWithEmailAndPassword` ile giriş yapar. Şifre doğrulaması hiçbir şekilde yerel olarak yapılmaz.
+     - **Oturum Kalıcılığı (`getCurrentUser` & `logout`):** Uygulama yeniden başlatıldığında `FirebaseAuth.currentUser` üzerinden oturumu korur ve Firestore'dan `UserModel` profilini yükler.
+     - **Yerel Özelliklerle Uyumluluk:** Mevcut SQLite veritabanındaki 10 test hesabı korunmuş olup, Firebase ile giriş yapan kullanıcının şifresiz profil önbelleği yerel SQLite'a yansıtılarak Takım Kurma, Randevularım, Sohbet, Bildirimler ve Davet sistemlerinin kesintisiz çalışması sağlanmıştır.
+  3. [lib/shared/providers/app_providers.dart](file:///c:/Users/Murat/Desktop/7v7/lib/shared/providers/app_providers.dart):
+     - `authRepositoryProvider` artık `FirebaseAuthRepository` kullanacak şekilde güncellendi (`localAuthRepositoryProvider` ise yerel testler ve mevcut 10 hesap için korundu).
+  4. [lib/features/authentication/presentation/register_screen.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/presentation/register_screen.dart):
+     - Şifre alanı ipucu ve doğrulaması Firebase Authentication standartlarına uygun olarak en az 6 karakter olacak şekilde güncellendi.
+  5. [firestore.rules](file:///c:/Users/Murat/Desktop/7v7/firestore.rules):
+     - Kullanıcıların yalnızca kendi `users/{uid}` profil verilerini oluşturup güncelleyebilmesini, şifre alanlarının Firestore'a yazılamamasını ve `phone_lookup/{phone}` belge kimliği üzerinden telefon numarası benzersizliğinin veritabanı seviyesinde korunmasını sağlayan güvenlik kuralları hazırlandı.
+
+---
+
+## GÜNCELLEME 5 — Firestore Güvenlik Kuralları Sıkılaştırması (`firestore.rules`) ve Telefonla Giriş Güvenlik Düzenlemesi
+- **Durum:** Tamamlandı ve Doğrulandı
+- **Yapılan İşlemler:**
+  1. [firestore.rules](file:///c:/Users/Murat/Desktop/7v7/firestore.rules):
+     - `users/{uid}` koleksiyonunda okuma izni yalnızca kullanıcının kendi UID belgesiyle sınırlandırıldı (`allow get: if isOwner(uid); allow list: if false;`). Başka kullanıcıların telefon numarası ve e-posta bilgilerinin okunması ve koleksiyonun listelenmesi tamamen engellendi.
+     - `users/{uid}` güncelleme kuralında (`allow update: if isOwner(uid)`) `uid`, `email`, `phone`, `termsAccepted` ve `kvkkAccepted` alanlarının değiştirilemezliği ve başka kullanıcıların profil verilerinin değiştirilememesi garanti altına alındı (`allow delete: if false`).
+     - `phone_lookup/{phone}` koleksiyonuna kimlik doğrulaması yapılmadan (`request.auth == null`) erişilmesi engellendi (`allow get: if isSignedIn(); allow list: if false;`).
+     - `phone_lookup/{phone}` belgelerinden `email` alanı tamamen çıkarıldı (`request.resource.data.keys().hasOnly(['uid', 'phone', 'createdAt'])`); böylece bu koleksiyon yalnızca kayıt esnasında telefon numarası benzersizliğini atomik olarak doğrulamak için kullanılır ve e-posta sızıntısına yol açmaz.
+  2. [lib/features/authentication/data/firebase_auth_repository.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/data/firebase_auth_repository.dart):
+     - İstemci tarafında kimlik doğrulaması öncesinde Firestore üzerinden telefon -> e-posta sorgulaması yapılmasının güvenlik riski (enumeration ve kimliksiz okuma gereksinimi) değerlendirilerek, güvenli bir sunucu tarafı çözümü eklenene kadar telefon numarasıyla giriş geçici olarak devre dışı bırakıldı (`code: 'phone-login-disabled'`). E-posta ve şifreyle giriş çalışmaya devam etmektedir.
+     - Kayıt (`register`) akışında kimlik doğrulaması öncesinde yapılan `phone_lookup` ön sorgusu kaldırıldı; telefon benzersizlik kontrolü `createUserWithEmailAndPassword` sonrasında oturum açmış kullanıcı bağlamında (`isSignedIn()`) atomik `_db.runTransaction` içinde gerçekleştirilecek şekilde güncellendi. Çakışma durumunda oluşturulan geçici Firebase Auth kullanıcısı `delete()` ile geri alınır (rollback).
+     - `getUserById` ve `getSuggestedPlayers` metotları, `users` koleksiyonunda yalnızca kendi UID belgesini okuma kuralıyla (`isOwner(uid)`) tam uyumlu hale getirildi.
+  3. [lib/features/authentication/presentation/login_screen.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/presentation/login_screen.dart):
+     - Mevcut ekran tasarımı ve widget anahtarları korunarak giriş alanı doğrulaması e-posta ile girişe uygun hale getirildi; telefon numarası girildiğinde kullanıcıya telefonla girişin geçici olarak devre dışı olduğu bilgisi gösterilir.
+  4. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
+     - `firestore.rules` kurallarını birebir simüle eden `RuleEnforcingFakeFirestore` ve `FakeFirebaseAuth` ile kayıt, e-posta girişi, telefon benzersizliği (ve rollback), telefonla girişin engellenmesi, kimliksiz `phone_lookup` erişim engeli ve kullanıcılar arası profil okuma/güncelleme izolasyonu uçtan uca test edildi.
+
+---
+
+## GÜNCELLEME 6 — İlk Girişte SQLite/SeedData Profil Senkronizasyonu ve Gerçek Onay (`consents`) Doğrulaması
+- **Durum:** Tamamlandı ve Doğrulandı
+- **Yapılan İşlemler:**
+  1. [lib/features/authentication/data/firebase_auth_repository.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/data/firebase_auth_repository.dart):
+     - `login()` metodunda Firebase Authentication ile giriş yapan kullanıcının Firestore `users/{uid}` belgesi henüz mevcut değilse (`!userDoc.exists`), `_resolveLocalOrSeedProfile(uid)` ile önce SQLite `users` tablosundaki mevcut kayıt, eğer UID `seed_user_1` .. `seed_user_10` arasındaysa `SeedData.predefinedUsers` kaydı bulunur.
+     - Kullanıcının `id` (`uid`), `firstName`, `lastName`, `email`, `phone`, `createdAt` ve `themeMode` bilgileri birebir korunur; `phone` alanı kesinlikle boş (`''`) değerle ezilmez.
+     - `_syncProfileToLocalCache` metodu mevcut SQLite kaydındaki dolu `phone` ve `passwordHash` alanlarını boş veya yer tutucu değerle ezmeyecek şekilde güçlendirildi.
+     - Firestore `users/{uid}` ve `phone_lookup/{phone}` belgeleri atomik `_db.runTransaction` ile oluşturulur; eğer `users/{uid}` belgesi zaten varsa yeniden yazılmaz ve mevcut profil korunur.
+     - Telefon numarası Firestore `phone_lookup/{phone}` içinde başka bir `uid` tarafından kullanılıyorsa işlem durdurulur (`AppException(code: 'phone-already-in-use')`), oturum kapatılır ve anlaşılır hata gösterilir.
+     - `termsAccepted` ve `kvkkAccepted` alanları `_getVerifiedLocalConsents(uid)` ile SQLite `consents` tablosundan denetlenir; yalnızca gerçekten onay kaydı (`accepted = 1`) varsa `true` yapılır. Eski test hesaplarında (`seed_user_1` .. `seed_user_10`) gerçek kullanıcı onayı olmadığı için `false` olarak kaydedilir.
+  2. [lib/shared/models/user_model.dart](file:///c:/Users/Murat/Desktop/7v7/lib/shared/models/user_model.dart) & [lib/features/authentication/data/local_auth_repository.dart](file:///c:/Users/Murat/Desktop/7v7/lib/features/authentication/data/local_auth_repository.dart):
+     - `UserModel` içerisinde `termsAccepted` ve `kvkkAccepted` varsayılan değerleri `false` yapıldı; böylece gerçek onay kaydı bulunmayan hesaplarda otomatik `true` atanması engellendi.
+  3. [firestore.rules](file:///c:/Users/Murat/Desktop/7v7/firestore.rules):
+     - Yeni kullanıcı kayıtlarında `termsAccepted == true && kvkkAccepted == true` zorunluluğu korunurken, `isLegacySeedUser(uid)` (`seed_user_1` .. `seed_user_10`) için ilk profil senkronizasyonunda `false` onay durumunun gerçeğe uygun şekilde kaydedilebilmesine ve sonradan `true` olarak güncellenebilmesine izin verildi.
+  4. [test/unit/seven_v_seven_business_rules_test.dart](file:///c:/Users/Murat/Desktop/7v7/test/unit/seven_v_seven_business_rules_test.dart):
+     - Firestore profili olmayan seed kullanıcısının SQLite profilinden senkronizasyonu, telefon numarasının boş değerle ezilmemesi, UID korunumu, mevcut Firestore belgesinin tekrar yazılmaması, başka kullanıcıya ait telefon numarası çakışmasının engellenmesi ve normal Firebase kullanıcılarının girişinin çalışmaya devam etmesi testleri eklendi.
+
+

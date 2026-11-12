@@ -89,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'E-posta adresiniz veya telefon numaranız ile giriş yapabilirsiniz.',
+                              'Kayıtlı e-posta adresiniz ve şifreniz ile giriş yapabilirsiniz.',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -98,12 +98,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             CustomTextField(
                               key: const Key('login_identifier_field'),
                               controller: _identifierController,
-                              label: 'E-posta veya Telefon Numarası',
-                              hint: 'E-posta veya telefon numaranızı giriniz',
+                              label: 'E-posta Adresi',
+                              hint: 'E-posta adresinizi giriniz',
                               prefixIcon: Icons.alternate_email_rounded,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              validator: Validators.validateIdentifier,
+                              validator: (val) {
+                                final trimmed = (val ?? '').trim();
+                                if (trimmed.isEmpty) {
+                                  return 'E-posta adresi boş bırakılamaz.';
+                                }
+                                if (!trimmed.contains('@') ||
+                                    Validators.isPhone(trimmed)) {
+                                  return 'Telefonla giriş geçici olarak devre dışıdır. Lütfen e-posta giriniz.';
+                                }
+                                return Validators.validateEmail(trimmed);
+                              },
                             ),
                             const SizedBox(height: 14),
                             CustomTextField(

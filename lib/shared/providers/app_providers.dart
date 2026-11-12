@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/database/app_database.dart';
+import '../../features/authentication/data/firebase_auth_repository.dart';
 import '../../features/authentication/data/local_auth_repository.dart';
 import '../../features/authentication/domain/auth_repository.dart';
 import '../../features/chat/data/local_chat_repository.dart';
@@ -26,14 +30,44 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('sharedPreferencesProvider must be overridden');
 });
 
+/// Firebase başlatılma durumu ve temel servis provider'ları
+final firebaseInitializedProvider = Provider<bool>((ref) => false);
+
+final firebaseAppProvider = Provider<FirebaseApp?>((ref) {
+  final isReady = ref.watch(firebaseInitializedProvider);
+  if (!isReady || Firebase.apps.isEmpty) return null;
+  return Firebase.app();
+});
+
+final firebaseAuthInstanceProvider = Provider<FirebaseAuth?>((ref) {
+  final app = ref.watch(firebaseAppProvider);
+  if (app == null) return null;
+  return FirebaseAuth.instanceFor(app: app);
+});
+
+final firestoreInstanceProvider = Provider<FirebaseFirestore?>((ref) {
+  final app = ref.watch(firebaseAppProvider);
+  if (app == null) return null;
+  return FirebaseFirestore.instanceFor(app: app);
+});
+
 /// AppDatabase provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase.instance;
 });
 
 /// Repository Providers
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
+final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
   return LocalAuthRepository(
+    appDatabase: ref.watch(appDatabaseProvider),
+    prefs: ref.watch(sharedPreferencesProvider),
+  );
+});
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return FirebaseAuthRepository(
+    firebaseAuth: ref.watch(firebaseAuthInstanceProvider),
+    firestore: ref.watch(firestoreInstanceProvider),
     appDatabase: ref.watch(appDatabaseProvider),
     prefs: ref.watch(sharedPreferencesProvider),
   );

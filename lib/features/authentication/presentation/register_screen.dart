@@ -215,11 +215,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               key: const Key('register_password_field'),
                               controller: _passwordController,
                               label: 'Şifre',
-                              hint: 'En az 4 karakter',
+                              hint: 'En az 6 karakter',
                               prefixIcon: Icons.lock_outline,
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.done,
-                              validator: Validators.validatePassword,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'Şifre boş bırakılamaz.';
+                                }
+                                if (v.length < 6) {
+                                  return 'Şifre en az 6 karakter olmalıdır.';
+                                }
+                                return null;
+                              },
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword

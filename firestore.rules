@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Yardımcı fonksiyonlar
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasNoPasswordFields(data) {
+      return !('password' in data) && !('passwordHash' in data);
+    }
+
+    // 10 önceden tanımlı test hesabı (seed_user_1 .. seed_user_10) kontrolü:
+    // Eski test hesaplarında gerçek bir kullanıcı onayı bulunmadığı için ilk profil
+    // senkronizasyonunda `termsAccepted` ve `kvkkAccepted` alanlarının gerçeğe uygun
+    // şekilde `false` olarak kaydedilebilmesine izin verir; yeni kullanıcı kayıtlarında
+    // ise her iki onayın da `true` olması zorunludur.
+    function isLegacySeedUser(uid) {
+      return uid.matches('^seed_user_(10|[1-9])$');
+    }
+
+    // 1. Kullanıcı Profilleri Koleksiyonu: users/{uid}
+    // - Kullanıcılar YALNIZCA kendi UID belgelerini okuyabilir (`allow get: if isOwner(uid)`).
+    // - Başka kullanıcıların telefon ve e-posta bilgileri okunamaz, koleksiyon listelenemez (`allow list: if false`).
+    // - Kullanıcılar başka kişilerin profil verilerini oluşturamaz, değiştiremez veya silemez.
+    // - Şifre alanlarının Firestore'a yazılması kural seviyesinde engellenir.
+    // - Yeni kullanıcı kayıtlarında sözleşme ve KVKK onaylarının true olması zorunludur.
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+
+      allow create: if isOwner(uid)
+        && hasNoPasswordFields(request.resource.data)
+        && request.resource.data.uid == uid
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() > 0
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.phone is string
+        && request.resource.data.phone.matches('^05[0-9]{9}$')
+        && request.resource.data.termsAccepted is bool
+        && request.resource.data.kvkkAccepted is bool
+        && (
+          (request.resource.data.termsAccepted == true && request.resource.data.kvkkAccepted == true)
+          || isLegacySeedUser(uid)
+        )
+        && request.resource.data.createdAt is timestamp;
+
+      allow update: if isOwner(uid)
+        && hasNoPasswordFields(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.termsAccepted is bool
+        && request.resource.data.kvkkAccepted is bool
+        && (resource.data.termsAccepted == false || request.resource.data.termsAccepted == true)
+        && (resource.data.kvkkAccepted == false || request.resource.data.kvkkAccepted == true);
+
+      allow delete: if false;
+    }
+
+    // 2. Telefon Numarası Benzersizlik İndeksi: phone_lookup/{phone}
+    // - Kimlik doğrulaması yapılmadan (`request.auth == null`) erişim tamamen engellenmiştir (`allow get: if isSignedIn()`).
+    // - Koleksiyonun toplu listelenmesi engellenmiştir (`allow list: if false`).
+    // - E-posta adresi bu koleksiyonda saklanmaz (`hasOnly(['uid', 'phone', 'createdAt'])`);
+    //   yalnızca kayıt ve ilk profil senkronizasyonu sırasında atomik transaction ile telefon numarasının
+    //   benzersizliğini doğrulamak için kullanılır.
+    // - `allow create` kuralı yalnızca belge daha önce mevcut değilse (`!exists(...)`) çalışır;
+    //   böylece aynı telefon numarasıyla ikinci bir hesap oluşturulması veritabanı motoru tarafından engellenir.
+    match /phone_lookup/{phone} {
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && phone.matches('^05[0-9]{9}$')
+        && !exists(/databases/$(database)/documents/phone_lookup/$(phone))
+        && request.resource.data.keys().hasOnly(['uid', 'phone', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.phone == phone
+        && request.resource.data.createdAt is timestamp;
+
+      allow update, delete: if false;
+    }
+  }
+}

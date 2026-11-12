@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
   final String firstName;
@@ -8,6 +10,8 @@ class UserModel {
   final String? profileImage;
   final String themeMode; // 'light' | 'dark'
   final DateTime createdAt;
+  final bool termsAccepted;
+  final bool kvkkAccepted;
 
   const UserModel({
     required this.id,
@@ -15,11 +19,15 @@ class UserModel {
     required this.lastName,
     required this.email,
     required this.phone,
-    required this.passwordHash,
+    this.passwordHash = '',
     this.profileImage,
     this.themeMode = 'light',
     required this.createdAt,
+    this.termsAccepted = false,
+    this.kvkkAccepted = false,
   });
+
+  String get uid => id;
 
   String get fullName => '$firstName $lastName'.trim();
 
@@ -39,6 +47,8 @@ class UserModel {
     String? profileImage,
     String? themeMode,
     DateTime? createdAt,
+    bool? termsAccepted,
+    bool? kvkkAccepted,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -50,9 +60,12 @@ class UserModel {
       profileImage: profileImage ?? this.profileImage,
       themeMode: themeMode ?? this.themeMode,
       createdAt: createdAt ?? this.createdAt,
+      termsAccepted: termsAccepted ?? this.termsAccepted,
+      kvkkAccepted: kvkkAccepted ?? this.kvkkAccepted,
     );
   }
 
+  /// Yerel SQLite tablosu için harita (şifre yalnızca yerel seed hesaplarında kullanılır)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -67,18 +80,73 @@ class UserModel {
     };
   }
 
+  /// Cloud Firestore `users/{uid}` koleksiyonu için harita.
+  /// Güvenlik kuralı gereği şifre veya passwordHash KESİNLİKLE Firestore'a kaydedilmez.
+  Map<String, dynamic> toFirestoreMap() {
+    return {
+      'uid': id,
+      'firstName': firstName.trim(),
+      'lastName': lastName.trim(),
+      'email': email.toLowerCase().trim(),
+      'phone': phone.trim(),
+      'createdAt': Timestamp.fromDate(createdAt),
+      'termsAccepted': termsAccepted,
+      'kvkkAccepted': kvkkAccepted,
+      'themeMode': themeMode,
+      if (profileImage != null) 'profileImage': profileImage,
+    };
+  }
+
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      id: map['id'] as String,
-      firstName: map['firstName'] as String,
-      lastName: map['lastName'] as String,
-      email: map['email'] as String,
-      phone: map['phone'] as String,
-      passwordHash: map['passwordHash'] as String,
+      id: (map['id'] ?? map['uid']) as String,
+      firstName: map['firstName'] as String? ?? '',
+      lastName: map['lastName'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      phone: map['phone'] as String? ?? '',
+      passwordHash: map['passwordHash'] as String? ?? '',
       profileImage: map['profileImage'] as String?,
       themeMode: (map['themeMode'] as String?) ?? 'light',
-      createdAt: DateTime.parse(map['createdAt'] as String),
+      createdAt: _parseDateTime(map['createdAt']),
+      termsAccepted: _parseBool(map['termsAccepted'], defaultValue: false),
+      kvkkAccepted: _parseBool(map['kvkkAccepted'], defaultValue: false),
     );
   }
-}
 
+  factory UserModel.fromFirestore(
+    Map<String, dynamic> map, {
+    required String docId,
+  }) {
+    return UserModel(
+      id: (map['uid'] as String?)?.isNotEmpty == true
+          ? map['uid'] as String
+          : docId,
+      firstName: map['firstName'] as String? ?? '',
+      lastName: map['lastName'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      phone: map['phone'] as String? ?? '',
+      passwordHash: '',
+      profileImage: map['profileImage'] as String?,
+      themeMode: (map['themeMode'] as String?) ?? 'light',
+      createdAt: _parseDateTime(map['createdAt']),
+      termsAccepted: _parseBool(map['termsAccepted'], defaultValue: false),
+      kvkkAccepted: _parseBool(map['kvkkAccepted'], defaultValue: false),
+    );
+  }
+
+  static DateTime _parseDateTime(Object? raw) {
+    if (raw is Timestamp) {
+      return raw.toDate();
+    }
+    if (raw is String && raw.isNotEmpty) {
+      return DateTime.tryParse(raw) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
+  static bool _parseBool(Object? raw, {bool defaultValue = false}) {
+    if (raw is bool) return raw;
+    if (raw is int) return raw == 1;
+    return defaultValue;
+  }
+}

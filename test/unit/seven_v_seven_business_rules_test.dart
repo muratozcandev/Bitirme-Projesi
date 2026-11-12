@@ -1,15 +1,22 @@
+// ignore_for_file: subtype_of_sealed_class
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hali_saha_7v7/core/errors/app_exception.dart';
 import 'package:hali_saha_7v7/data/database/app_database.dart';
+import 'package:hali_saha_7v7/features/authentication/data/firebase_auth_repository.dart';
 import 'package:hali_saha_7v7/features/authentication/data/local_auth_repository.dart';
 import 'package:hali_saha_7v7/features/chat/data/local_chat_repository.dart';
 import 'package:hali_saha_7v7/features/notifications/data/local_invitation_repository.dart';
 import 'package:hali_saha_7v7/features/notifications/data/local_notification_repository.dart';
 import 'package:hali_saha_7v7/features/team_creation/data/local_team_repository.dart';
+import 'package:hali_saha_7v7/firebase_options.dart';
 import 'package:hali_saha_7v7/shared/models/formation.dart';
 import 'package:hali_saha_7v7/shared/models/invitation_model.dart';
+import 'package:hali_saha_7v7/shared/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' hide Transaction;
 
 void main() {
   sqfliteFfiInit();
@@ -348,6 +355,796 @@ void main() {
       expect(messiAfterDelete, isEmpty);
       expect(cr7AfterDelete.length, 1);
     });
+
+    test('Firebase yapılandırma seçenekleri (DefaultFirebaseOptions) doğrulanmalı', () {
+      expect(DefaultFirebaseOptions.android.projectId, 'v7-app-341ae');
+      expect(DefaultFirebaseOptions.web.projectId, 'v7-app-341ae');
+      expect(DefaultFirebaseOptions.windows.projectId, 'v7-app-341ae');
+      expect(DefaultFirebaseOptions.android.apiKey.isNotEmpty, isTrue);
+    });
+
+    test('UserModel Firestore serileştirmesi şifre içermemeli ve zorunlu alanları korumalı', () {
+      final now = DateTime.utc(2026, 11, 12, 4, 30);
+      final user = UserModel(
+        id: 'firebase_uid_123',
+        firstName: 'Hakan',
+        lastName: 'Çalhanoğlu',
+        email: 'hakan@gmail.com',
+        phone: '05321112233',
+        passwordHash: 'GIZLI_HASH_FIRESTORE_GITMEMELI',
+        createdAt: now,
+        termsAccepted: true,
+        kvkkAccepted: true,
+      );
+
+      final firestoreMap = user.toFirestoreMap();
+      expect(firestoreMap['uid'], 'firebase_uid_123');
+      expect(firestoreMap['firstName'], 'Hakan');
+      expect(firestoreMap['lastName'], 'Çalhanoğlu');
+      expect(firestoreMap['email'], 'hakan@gmail.com');
+      expect(firestoreMap['phone'], '05321112233');
+      expect(firestoreMap['createdAt'], isA<Timestamp>());
+      expect(firestoreMap['termsAccepted'], isTrue);
+      expect(firestoreMap['kvkkAccepted'], isTrue);
+      // Şifre veya passwordHash kesinlikle Firestore haritasında bulunmamalı
+      expect(firestoreMap.containsKey('password'), isFalse);
+      expect(firestoreMap.containsKey('passwordHash'), isFalse);
+
+      final parsed = UserModel.fromFirestore(
+        firestoreMap,
+        docId: 'firebase_uid_123',
+      );
+      expect(parsed.id, 'firebase_uid_123');
+      expect(parsed.fullName, 'Hakan Çalhanoğlu');
+      expect(parsed.passwordHash, isEmpty);
+    });
+
+    test('FirebaseAuthRepository kayıt ve giriş doğrulamaları zorunlu kuralları denetlemeli', () async {
+      final prefs = await SharedPreferences.getInstance();
+      final fbRepo = FirebaseAuthRepository(
+        firebaseAuth: null,
+        firestore: null,
+        appDatabase: db,
+        prefs: prefs,
+      );
+
+      // Sözleşme ve KVKK onayı zorunlu
+      expect(
+        () => fbRepo.register(
+          firstName: 'Kerem',
+          lastName: 'Aktürkoğlu',
+          email: 'kerem@gmail.com',
+          phone: '05334445566',
+          password: 'password123',
+          acceptedUserAgreement: false,
+          acceptedKvkk: true,
+        ),
+        throwsA(isA<AppException>()),
+      );
+
+      // 6 karakterden kısa şifre engellenmeli
+      expect(
+        () => fbRepo.register(
+          firstName: 'Kerem',
+          lastName: 'Aktürkoğlu',
+          email: 'kerem@gmail.com',
+          phone: '05334445566',
+          password: '12345',
+          acceptedUserAgreement: true,
+          acceptedKvkk: true,
+        ),
+        throwsA(isA<AppException>()),
+      );
+    });
+
+    test(
+        'Firestore güvenlik kuralları (firestore.rules) ile kayıt, e-posta girişi, telefon benzersizliği ve izolasyon uyumlu çalışmalı',
+        () async {
+      final prefs = await SharedPreferences.getInstance();
+      final fakeAuth = FakeFirebaseAuth();
+      final fakeFirestore = RuleEnforcingFakeFirestore(auth: fakeAuth);
+      final fbRepo = FirebaseAuthRepository(
+        firebaseAuth: fakeAuth,
+        firestore: fakeFirestore,
+        appDatabase: db,
+        prefs: prefs,
+      );
+
+      // 1. Kimlik doğrulaması olmadan (`request.auth == null`) phone_lookup veya users okunamamalı
+      expect(
+        () => fakeFirestore.collection('phone_lookup').doc('05334445566').get(),
+        throwsA(
+          isA<FirebaseException>()
+              .having((e) => e.code, 'code', 'permission-denied'),
+        ),
+      );
+      expect(
+        () => fakeFirestore.collection('users').doc('any_uid').get(),
+        throwsA(
+          isA<FirebaseException>()
+              .having((e) => e.code, 'code', 'permission-denied'),
+        ),
+      );
+
+      // 2. Yeni kullanıcı kaydı (`register`) güvenlik kurallarıyla tam uyumlu çalışmalı
+      final registeredUser = await fbRepo.register(
+        firstName: 'Kerem',
+        lastName: 'Aktürkoğlu',
+        email: 'kerem@gmail.com',
+        phone: '05334445566',
+        password: 'password123',
+        acceptedUserAgreement: true,
+        acceptedKvkk: true,
+      );
+
+      expect(registeredUser.email, 'kerem@gmail.com');
+      expect(registeredUser.phone, '05334445566');
+      // Kayıt sonrası geçici oturum kapatılmış olmalı (giriş ekranına yönlendirme için)
+      expect(fakeAuth.currentUser, isNull);
+
+      // phone_lookup belgesinde e-posta veya şifre yer almamalı, yalnızca uid, phone, createdAt bulunmalı
+      final rawPhoneDoc = fakeFirestore.rawDoc('phone_lookup', '05334445566');
+      expect(rawPhoneDoc, isNotNull);
+      expect(rawPhoneDoc!.keys.toSet(), {'uid', 'phone', 'createdAt'});
+      expect(rawPhoneDoc.containsKey('email'), isFalse);
+
+      // 3. Aynı telefon numarasıyla (`05334445566`) ikinci bir hesap oluşturulması engellenmeli ve Auth hesabı geri alınmalı (rollback)
+      await expectLater(
+        () => fbRepo.register(
+          firstName: 'Barış Alper',
+          lastName: 'Yılmaz',
+          email: 'baris@gmail.com',
+          phone: '05334445566',
+          password: 'password123',
+          acceptedUserAgreement: true,
+          acceptedKvkk: true,
+        ),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.code, 'code', 'phone-already-in-use'),
+        ),
+      );
+      // Rollback sonrasında 'baris@gmail.com' Firebase Auth üzerinde kalmamalı
+      expect(fakeAuth.hasEmail('baris@gmail.com'), isFalse);
+
+      // 4. Telefon numarasıyla giriş geçici olarak devre dışı olmalı (phone-login-disabled)
+      await expectLater(
+        () => fbRepo.login(
+          identifier: '05334445566',
+          password: 'password123',
+        ),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.code, 'code', 'phone-login-disabled'),
+        ),
+      );
+
+      // 5. E-posta ve şifre ile giriş (`login`) güvenlik kurallarıyla uyumlu çalışmalı
+      final loggedInUser = await fbRepo.login(
+        identifier: 'kerem@gmail.com',
+        password: 'password123',
+      );
+      expect(loggedInUser.id, registeredUser.id);
+      expect(loggedInUser.fullName, 'Kerem Aktürkoğlu');
+      expect(fakeAuth.currentUser?.uid, registeredUser.id);
+
+      // 6. İkinci bir kullanıcı kaydedip oturum açtığında, ilk kullanıcının profilini okuyamamalı ve değiştirememeli
+      await fbRepo.logout();
+      final secondUser = await fbRepo.register(
+        firstName: 'Ferdi',
+        lastName: 'Kadıoğlu',
+        email: 'ferdi@gmail.com',
+        phone: '05445556677',
+        password: 'password123',
+        acceptedUserAgreement: true,
+        acceptedKvkk: true,
+      );
+      await fbRepo.login(
+        identifier: 'ferdi@gmail.com',
+        password: 'password123',
+      );
+      expect(fakeAuth.currentUser?.uid, secondUser.id);
+
+      // Ferdi (secondUser), Kerem'in (registeredUser) `users/{uid}` belgesini OKUYAMAZ
+      expect(
+        () => fakeFirestore.collection('users').doc(registeredUser.id).get(),
+        throwsA(
+          isA<FirebaseException>()
+              .having((e) => e.code, 'code', 'permission-denied'),
+        ),
+      );
+
+      // Ferdi, `users` koleksiyonunu LİSTELEYEMEZ (`allow list: if false`)
+      expect(
+        () => fakeFirestore.collection('users').get(),
+        throwsA(
+          isA<FirebaseException>()
+              .having((e) => e.code, 'code', 'permission-denied'),
+        ),
+      );
+
+      // Ferdi, Kerem'in profilini DEĞİŞTİREMEZ (`allow update: if isOwner(uid)`)
+      expect(
+        () => fakeFirestore
+            .collection('users')
+            .doc(registeredUser.id)
+            .update({'firstName': 'Yetkisiz'}),
+        throwsA(
+          isA<FirebaseException>()
+              .having((e) => e.code, 'code', 'permission-denied'),
+        ),
+      );
+
+      // Ferdi kendi profilinin temasını güncelleyebilir (`isOwner(uid)`)
+      final updatedFerdi = await fbRepo.updateThemeMode(
+        userId: secondUser.id,
+        themeMode: 'dark',
+      );
+      expect(updatedFerdi.themeMode, 'dark');
+    });
+
+    test(
+        'Firestore profili bulunmayan seed kullanıcısının SQLite profilinden senkronizasyonu, telefon/UID korunumu ve çakışma engeli',
+        () async {
+      final prefs = await SharedPreferences.getInstance();
+      final fakeAuth = FakeFirebaseAuth();
+      final fakeFirestore = RuleEnforcingFakeFirestore(auth: fakeAuth);
+      final fbRepo = FirebaseAuthRepository(
+        firebaseAuth: fakeAuth,
+        firestore: fakeFirestore,
+        appDatabase: db,
+        prefs: prefs,
+      );
+
+      // Hazırlık: `seed_user_1` (Cristiano Ronaldo) ve `seed_user_2` (Lionel Messi)
+      // yalnızca Firebase Auth'ta mevcut olsun, Firestore'da henüz `users/{uid}` belgesi bulunmasın.
+      fakeAuth.seedImportedAccount(
+        uid: 'seed_user_1',
+        email: 'cr7@gmail.com',
+        password: 'cris7',
+        displayName: 'cristiano Ronaldo',
+      );
+      fakeAuth.seedImportedAccount(
+        uid: 'seed_user_2',
+        email: 'm10@gmail.com',
+        password: 'messi10',
+        displayName: 'lionel messi',
+      );
+
+      expect(fakeFirestore.rawDoc('users', 'seed_user_1'), isNull);
+      expect(fakeFirestore.rawDoc('phone_lookup', '05111111111'), isNull);
+
+      // 1, 2 & 3. Firestore profili bulunmayan `seed_user_1` giriş yaptığında SQLite profilinden senkronize edilmeli,
+      // telefon numarası (`05111111111`) boş değerle ezilmemeli ve UID (`seed_user_1`) korunmalı.
+      final cr7LoggedIn = await fbRepo.login(
+        identifier: 'cr7@gmail.com',
+        password: 'cris7',
+      );
+
+      expect(cr7LoggedIn.id, 'seed_user_1');
+      expect(cr7LoggedIn.firstName, 'cristiano');
+      expect(cr7LoggedIn.lastName, 'Ronaldo');
+      expect(cr7LoggedIn.email, 'cr7@gmail.com');
+      expect(cr7LoggedIn.phone, '05111111111');
+      expect(cr7LoggedIn.themeMode, 'light');
+      expect(cr7LoggedIn.createdAt, DateTime.utc(2026, 1, 1, 12, 0));
+      // Gerçek kullanıcı onayı (consents kaydı) olmadığı için onay verilmiş gibi gösterilmemeli
+      expect(cr7LoggedIn.termsAccepted, isFalse);
+      expect(cr7LoggedIn.kvkkAccepted, isFalse);
+
+      // Firestore `users/seed_user_1` ve `phone_lookup/05111111111` belgeleri oluşmuş olmalı
+      final syncedUserDoc = fakeFirestore.rawDoc('users', 'seed_user_1');
+      expect(syncedUserDoc, isNotNull);
+      expect(syncedUserDoc!['uid'], 'seed_user_1');
+      expect(syncedUserDoc['phone'], '05111111111');
+      expect(syncedUserDoc['termsAccepted'], isFalse);
+      expect(syncedUserDoc['kvkkAccepted'], isFalse);
+
+      final syncedPhoneDoc =
+          fakeFirestore.rawDoc('phone_lookup', '05111111111');
+      expect(syncedPhoneDoc, isNotNull);
+      expect(syncedPhoneDoc!['uid'], 'seed_user_1');
+      expect(syncedPhoneDoc['phone'], '05111111111');
+
+      // SQLite tablosunda da telefon numarası ve ID korunmuş olmalı (boş değerle ezilmemeli)
+      final sqlite = await db.database;
+      final sqliteRows = await sqlite.query(
+        'users',
+        where: 'id = ?',
+        whereArgs: ['seed_user_1'],
+      );
+      expect(sqliteRows.length, 1);
+      expect(sqliteRows.first['id'], 'seed_user_1');
+      expect(sqliteRows.first['phone'], '05111111111');
+
+      // 4. Firestore belgesi zaten varsa (`users/seed_user_1`) tekrar girişte yeniden transaction çalıştırılmamalı ve üzerine yazılmamalı
+      final txCountAfterFirstLogin = fakeFirestore.transactionCount;
+      expect(txCountAfterFirstLogin, 1);
+
+      await fbRepo.logout();
+      final cr7SecondLogin = await fbRepo.login(
+        identifier: 'cr7@gmail.com',
+        password: 'cris7',
+      );
+      expect(cr7SecondLogin.id, 'seed_user_1');
+      expect(cr7SecondLogin.phone, '05111111111');
+      // İkinci girişte Firestore belgesi zaten var olduğu için yeni bir transaction çalışmamış olmalı
+      expect(fakeFirestore.transactionCount, txCountAfterFirstLogin);
+      await fbRepo.logout();
+
+      // 5. Başka bir kullanıcıya ait telefon numarası kullanılıyorsa işlem durdurulmalı ve anlaşılır hata verilmeli
+      // Önce normal bir kullanıcı `05222222222` (Messi'nin telefon numarası) ile kayıt olsun:
+      await fbRepo.register(
+        firstName: 'Başka',
+        lastName: 'Kullanıcı',
+        email: 'baska_kullanici@gmail.com',
+        phone: '05222222222',
+        password: 'password123',
+        acceptedUserAgreement: true,
+        acceptedKvkk: true,
+      );
+
+      // Şimdi Firestore'da henüz profili olmayan `seed_user_2` (Messi - 05222222222) giriş yapmayı denediğinde
+      // telefon numarası başka bir UID tarafından kullanıldığı için işlem durdurulmalı:
+      await expectLater(
+        () => fbRepo.login(
+          identifier: 'm10@gmail.com',
+          password: 'messi10',
+        ),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.code, 'code', 'phone-already-in-use'),
+        ),
+      );
+      expect(fakeAuth.currentUser, isNull);
+      expect(fakeFirestore.rawDoc('users', 'seed_user_2'), isNull);
+
+      // 6. Normal Firebase kullanıcılarının girişi sorunsuz çalışmaya devam etmeli
+      final normalLogin = await fbRepo.login(
+        identifier: 'baska_kullanici@gmail.com',
+        password: 'password123',
+      );
+      expect(normalLogin.email, 'baska_kullanici@gmail.com');
+      expect(normalLogin.phone, '05222222222');
+      expect(normalLogin.termsAccepted, isTrue);
+      expect(normalLogin.kvkkAccepted, isTrue);
+    });
   });
+}
+
+// =============================================================================
+// FIRESTORE GÜVENLİK KURALLARI SİMÜLATÖRÜ VE FAKE FIREBASE AUTH
+// (`firestore.rules` dosyasındaki kuralları birebir uygular)
+// =============================================================================
+
+class AuthAccount {
+  final String uid;
+  final String email;
+  final String password;
+  String? displayName;
+
+  AuthAccount({
+    required this.uid,
+    required this.email,
+    required this.password,
+  });
+}
+
+class FakeUser extends Fake implements User {
+  final AuthAccount _account;
+  final FakeFirebaseAuth _auth;
+
+  FakeUser(this._account, this._auth);
+
+  @override
+  String get uid => _account.uid;
+
+  @override
+  String? get email => _account.email;
+
+  @override
+  String? get displayName => _account.displayName;
+
+  @override
+  Future<void> updateDisplayName(String? displayName) async {
+    _account.displayName = displayName;
+  }
+
+  @override
+  Future<void> delete() async {
+    _auth._deleteAccount(_account.uid);
+  }
+}
+
+class FakeUserCredential extends Fake implements UserCredential {
+  @override
+  final User? user;
+
+  FakeUserCredential(this.user);
+}
+
+class FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  final Map<String, AuthAccount> _byUid = {};
+  FakeUser? _currentUser;
+  int _counter = 0;
+
+  @override
+  User? get currentUser => _currentUser;
+
+  bool hasEmail(String email) =>
+      _byUid.values.any((a) => a.email == email.toLowerCase().trim());
+
+  void seedImportedAccount({
+    required String uid,
+    required String email,
+    required String password,
+    String? displayName,
+  }) {
+    final account = AuthAccount(
+      uid: uid,
+      email: email.toLowerCase().trim(),
+      password: password,
+    )..displayName = displayName;
+    _byUid[uid] = account;
+  }
+
+  void _deleteAccount(String uid) {
+    _byUid.remove(uid);
+    if (_currentUser?.uid == uid) {
+      _currentUser = null;
+    }
+  }
+
+  @override
+  Future<UserCredential> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    final normalized = email.toLowerCase().trim();
+    if (hasEmail(normalized)) {
+      throw FirebaseAuthException(
+        code: 'email-already-in-use',
+        message: 'Email already in use.',
+      );
+    }
+    _counter++;
+    final account = AuthAccount(
+      uid: 'uid_$_counter',
+      email: normalized,
+      password: password,
+    );
+    _byUid[account.uid] = account;
+    _currentUser = FakeUser(account, this);
+    return FakeUserCredential(_currentUser);
+  }
+
+  @override
+  Future<UserCredential> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    final normalized = email.toLowerCase().trim();
+    final match = _byUid.values
+        .where((a) => a.email == normalized && a.password == password)
+        .toList();
+    if (match.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'invalid-credential',
+        message: 'Invalid email or password.',
+      );
+    }
+    _currentUser = FakeUser(match.first, this);
+    return FakeUserCredential(_currentUser);
+  }
+
+  @override
+  Future<void> signOut() async {
+    _currentUser = null;
+  }
+}
+
+class RuleEnforcingFakeFirestore extends Fake implements FirebaseFirestore {
+  final FakeFirebaseAuth auth;
+  int transactionCount = 0;
+  final Map<String, Map<String, Map<String, dynamic>>> _store = {
+    'users': {},
+    'phone_lookup': {},
+  };
+
+  RuleEnforcingFakeFirestore({required this.auth});
+
+  Map<String, dynamic>? rawDoc(String collectionPath, String docId) {
+    final col = _store[collectionPath];
+    if (col == null || !col.containsKey(docId)) return null;
+    return Map<String, dynamic>.from(col[docId]!);
+  }
+
+  Never _deny(String reason) {
+    throw FirebaseException(
+      plugin: 'cloud_firestore',
+      code: 'permission-denied',
+      message: 'Missing or insufficient permissions: $reason',
+    );
+  }
+
+  bool get _isSignedIn => auth.currentUser != null;
+  String? get _authUid => auth.currentUser?.uid;
+
+  bool _isOwner(String uid) => _isSignedIn && _authUid == uid;
+
+  bool _hasNoPasswordFields(Map<String, dynamic> data) =>
+      !data.containsKey('password') && !data.containsKey('passwordHash');
+
+  void _checkGetRule(String collectionPath, String docId) {
+    if (collectionPath == 'users') {
+      // allow get: if isOwner(uid);
+      if (!_isOwner(docId)) {
+        _deny('users/{uid} get requires isOwner(uid)');
+      }
+      return;
+    }
+    if (collectionPath == 'phone_lookup') {
+      // allow get: if isSignedIn();
+      if (!_isSignedIn) {
+        _deny('phone_lookup/{phone} get requires isSignedIn()');
+      }
+      return;
+    }
+    _deny('Unknown collection $collectionPath');
+  }
+
+  Never _checkListRule(String collectionPath) {
+    // Her iki koleksiyonda da `allow list: if false;`
+    _deny('list on $collectionPath is forbidden by firestore.rules');
+  }
+
+  void _checkCreateRule(
+    String collectionPath,
+    String docId,
+    Map<String, dynamic> data,
+    Map<String, Map<String, Map<String, dynamic>>> currentStore,
+  ) {
+    if (collectionPath == 'users') {
+      final phoneRegex = RegExp(r'^05[0-9]{9}$');
+      final isLegacySeedUser = RegExp(r'^seed_user_(10|[1-9])$').hasMatch(docId);
+      final ok = _isOwner(docId) &&
+          _hasNoPasswordFields(data) &&
+          data['uid'] == docId &&
+          data['firstName'] is String &&
+          (data['firstName'] as String).isNotEmpty &&
+          data['lastName'] is String &&
+          (data['lastName'] as String).isNotEmpty &&
+          data['email'] is String &&
+          (data['email'] as String).isNotEmpty &&
+          data['phone'] is String &&
+          phoneRegex.hasMatch(data['phone'] as String) &&
+          data['termsAccepted'] is bool &&
+          data['kvkkAccepted'] is bool &&
+          ((data['termsAccepted'] == true && data['kvkkAccepted'] == true) ||
+              isLegacySeedUser) &&
+          data['createdAt'] is Timestamp;
+      if (!ok) {
+        _deny('users/{uid} create rule failed');
+      }
+      return;
+    }
+    if (collectionPath == 'phone_lookup') {
+      final phoneRegex = RegExp(r'^05[0-9]{9}$');
+      final alreadyExists =
+          currentStore['phone_lookup']?.containsKey(docId) ?? false;
+      final allowedKeys = {'uid', 'phone', 'createdAt'};
+      final hasOnlyAllowedKeys =
+          data.keys.every(allowedKeys.contains) && data.keys.length == 3;
+      final ok = _isSignedIn &&
+          phoneRegex.hasMatch(docId) &&
+          !alreadyExists &&
+          hasOnlyAllowedKeys &&
+          data['uid'] == _authUid &&
+          data['phone'] == docId &&
+          data['createdAt'] is Timestamp;
+      if (!ok) {
+        _deny('phone_lookup/{phone} create rule failed');
+      }
+      return;
+    }
+    _deny('Unknown collection $collectionPath');
+  }
+
+  void _checkUpdateRule(
+    String collectionPath,
+    String docId,
+    Map<String, dynamic> existingData,
+    Map<String, dynamic> mergedData,
+  ) {
+    if (collectionPath == 'users') {
+      final ok = _isOwner(docId) &&
+          _hasNoPasswordFields(mergedData) &&
+          mergedData['uid'] == existingData['uid'] &&
+          mergedData['email'] == existingData['email'] &&
+          mergedData['phone'] == existingData['phone'] &&
+          mergedData['termsAccepted'] == existingData['termsAccepted'] &&
+          mergedData['kvkkAccepted'] == existingData['kvkkAccepted'];
+      if (!ok) {
+        _deny('users/{uid} update rule failed');
+      }
+      return;
+    }
+    _deny('update on $collectionPath is forbidden by firestore.rules');
+  }
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String collectionPath) {
+    return FakeCollectionRef(this, collectionPath);
+  }
+
+  @override
+  Future<T> runTransaction<T>(
+    TransactionHandler<T> transactionHandler, {
+    Duration timeout = const Duration(seconds: 30),
+    int maxAttempts = 5,
+  }) async {
+    transactionCount++;
+    final stagedStore = <String, Map<String, Map<String, dynamic>>>{
+      for (final entry in _store.entries)
+        entry.key: {
+          for (final docEntry in entry.value.entries)
+            docEntry.key: Map<String, dynamic>.from(docEntry.value),
+        },
+    };
+    final tx = FakeTransaction(this, stagedStore);
+    final result = await transactionHandler(tx);
+    tx.commitTo(_store);
+    return result;
+  }
+}
+
+class FakeCollectionRef extends Fake
+    implements CollectionReference<Map<String, dynamic>> {
+  final RuleEnforcingFakeFirestore _firestore;
+  final String _path;
+
+  FakeCollectionRef(this._firestore, this._path);
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return FakeDocRef(_firestore, _path, path ?? 'auto_id');
+  }
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> get([GetOptions? options]) async {
+    _firestore._checkListRule(_path);
+  }
+}
+
+class FakeDocRef extends Fake
+    implements DocumentReference<Map<String, dynamic>> {
+  final RuleEnforcingFakeFirestore _firestore;
+  final String collectionPath;
+  @override
+  final String id;
+
+  FakeDocRef(this._firestore, this.collectionPath, this.id);
+
+  @override
+  Future<DocumentSnapshot<Map<String, dynamic>>> get([
+    GetOptions? options,
+  ]) async {
+    _firestore._checkGetRule(collectionPath, id);
+    final data = _firestore._store[collectionPath]?[id];
+    return FakeDocSnap(
+      id,
+      data == null ? null : Map<String, dynamic>.from(data),
+    );
+  }
+
+  @override
+  Future<void> set(Map<String, dynamic> data, [SetOptions? options]) async {
+    final col = _firestore._store.putIfAbsent(collectionPath, () => {});
+    final existing = col[id];
+    if (existing == null) {
+      _firestore._checkCreateRule(collectionPath, id, data, _firestore._store);
+      col[id] = Map<String, dynamic>.from(data);
+    } else {
+      final merged = (options?.merge ?? false)
+          ? {...existing, ...data}
+          : Map<String, dynamic>.from(data);
+      _firestore._checkUpdateRule(collectionPath, id, existing, merged);
+      col[id] = merged;
+    }
+  }
+
+  @override
+  Future<void> update(Map<Object, Object?> data) async {
+    final col = _firestore._store.putIfAbsent(collectionPath, () => {});
+    final existing = col[id];
+    if (existing == null) {
+      _firestore._deny('Document $collectionPath/$id does not exist');
+    }
+    final patch = <String, dynamic>{
+      for (final entry in data.entries) entry.key.toString(): entry.value,
+    };
+    final merged = {...existing, ...patch};
+    _firestore._checkUpdateRule(collectionPath, id, existing, merged);
+    col[id] = merged;
+  }
+}
+
+class FakeDocSnap extends Fake
+    implements DocumentSnapshot<Map<String, dynamic>> {
+  @override
+  final String id;
+  final Map<String, dynamic>? _data;
+
+  FakeDocSnap(this.id, this._data);
+
+  @override
+  bool get exists => _data != null;
+
+  @override
+  Map<String, dynamic>? data() => _data;
+}
+
+class FakeTransaction extends Fake implements Transaction {
+  final RuleEnforcingFakeFirestore _firestore;
+  final Map<String, Map<String, Map<String, dynamic>>> _staged;
+  final List<void Function()> _pendingWrites = [];
+
+  FakeTransaction(this._firestore, this._staged);
+
+  @override
+  Future<DocumentSnapshot<T>> get<T extends Object?>(
+    DocumentReference<T> documentReference,
+  ) async {
+    final docRef = documentReference as FakeDocRef;
+    _firestore._checkGetRule(docRef.collectionPath, docRef.id);
+    final data = _staged[docRef.collectionPath]?[docRef.id];
+    return FakeDocSnap(
+      docRef.id,
+      data == null ? null : Map<String, dynamic>.from(data),
+    ) as DocumentSnapshot<T>;
+  }
+
+  @override
+  Transaction set<T>(
+    DocumentReference<T> documentReference,
+    T data, [
+    SetOptions? options,
+  ]) {
+    final docRef = documentReference as FakeDocRef;
+    final mapData = Map<String, dynamic>.from(data as Map);
+    _pendingWrites.add(() {
+      final col = _staged.putIfAbsent(docRef.collectionPath, () => {});
+      final existing = col[docRef.id];
+      if (existing == null) {
+        _firestore._checkCreateRule(
+          docRef.collectionPath,
+          docRef.id,
+          mapData,
+          _staged,
+        );
+        col[docRef.id] = mapData;
+      } else {
+        final merged =
+            (options?.merge ?? false) ? {...existing, ...mapData} : mapData;
+        _firestore._checkUpdateRule(
+          docRef.collectionPath,
+          docRef.id,
+          existing,
+          merged,
+        );
+        col[docRef.id] = merged;
+      }
+    });
+    return this;
+  }
+
+  void commitTo(Map<String, Map<String, Map<String, dynamic>>> target) {
+    for (final write in _pendingWrites) {
+      write();
+    }
+    target
+      ..clear()
+      ..addAll(_staged);
+  }
 }
 

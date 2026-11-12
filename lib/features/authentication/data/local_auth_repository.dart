@@ -38,7 +38,26 @@ class LocalAuthRepository implements AuthRepository {
       limit: 1,
     );
     if (rows.isEmpty) return null;
-    return UserModel.fromMap(rows.first);
+    final baseUser = UserModel.fromMap(rows.first);
+    return _attachConsents(db, baseUser);
+  }
+
+  Future<UserModel> _attachConsents(
+    dynamic db,
+    UserModel user,
+  ) async {
+    final consentRows = await db.query(
+      'consents',
+      where: 'userId = ? AND accepted = 1',
+      whereArgs: [user.id],
+    );
+    final hasTerms =
+        consentRows.any((r) => r['documentType'] == 'user_agreement');
+    final hasKvkk = consentRows.any((r) => r['documentType'] == 'kvkk');
+    return user.copyWith(
+      termsAccepted: hasTerms,
+      kvkkAccepted: hasKvkk,
+    );
   }
 
   @override
@@ -80,11 +99,12 @@ class LocalAuthRepository implements AuthRepository {
       );
     }
 
-    final user = UserModel.fromMap(rows.first);
-    if (!PasswordHasher.verify(password, user.passwordHash)) {
+    final baseUser = UserModel.fromMap(rows.first);
+    if (!PasswordHasher.verify(password, baseUser.passwordHash)) {
       throw const AppException('Hatalı şifre girdiniz. Lütfen tekrar deneyin.');
     }
 
+    final user = await _attachConsents(db, baseUser);
     await prefs.setString(AppConstants.prefActiveUserIdKey, user.id);
     return user;
   }
@@ -164,6 +184,8 @@ class LocalAuthRepository implements AuthRepository {
       passwordHash: PasswordHasher.hash(password),
       themeMode: 'light',
       createdAt: now,
+      termsAccepted: true,
+      kvkkAccepted: true,
     );
 
     await db.transaction((txn) async {
