@@ -12,9 +12,12 @@ import 'data/database/app_database.dart';
 import 'firebase_options.dart';
 import 'shared/providers/app_providers.dart';
 
+/// Firebase servislerini platforma özel yapılandırmayla başlatan ve bağlantıyı doğrulayan yardımcı fonksiyon.
+/// Ağ veya servis başlatma hatası durumunda uygulamanın yerel SQLite modunda çalışabilmesi için false döndürür.
 Future<bool> _initializeAndVerifyFirebase() async {
   try {
     final FirebaseApp app;
+    // Firebase daha önce başlatılmamışsa ilgili platform seçenekleriyle başlat
     if (Firebase.apps.isEmpty) {
       app = await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -23,6 +26,7 @@ Future<bool> _initializeAndVerifyFirebase() async {
       app = Firebase.app();
     }
 
+    // Auth ve Firestore servis örneklerinin erişilebilir olduğunu kontrol et
     final auth = FirebaseAuth.instanceFor(app: app);
     final firestore = FirebaseFirestore.instanceFor(app: app);
 
@@ -37,15 +41,23 @@ Future<bool> _initializeAndVerifyFirebase() async {
   }
 }
 
+/// Uygulamanın ana başlangıç noktası.
+/// Platform kanallarını bağlar, yerel ve uzak veritabanlarını hazırlar,
+/// oturum bilgisini yükler ve ana widget ağacını ekrana basar.
 Future<void> main() async {
+  // Flutter motoru ve platform kanalları arasındaki iletişimi güvenceye alır
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Firebase bağlantısını başlat ve hazırlık durumunu kontrol et
   final isFirebaseReady = await _initializeAndVerifyFirebase();
 
+  // Cihaz üzerindeki yerel SQLite veritabanı tablolarını ve seed verilerini hazırla
   await AppDatabase.instance.database;
 
+  // Cihaz hafızasındaki yerel anahtar-değer (SharedPreferences) deposunu yükle
   final prefs = await SharedPreferences.getInstance();
 
+  // Riverpod durum konteynerini oluştur ve ana bağımlılıkları enjekte et
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -53,8 +65,10 @@ Future<void> main() async {
     ],
   );
 
+  // Varsa kayıtlı kullanıcı oturumunu belleğe yükle
   await container.read(authProvider.notifier).initializeSession();
 
+  // Kök widget ağacını başlat
   runApp(
     UncontrolledProviderScope(
       container: container,

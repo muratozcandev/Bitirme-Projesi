@@ -10,12 +10,16 @@ import '../../../shared/models/team_member_model.dart';
 import '../../../shared/models/team_model.dart';
 import '../domain/team_repository.dart';
 
+/// Takım oluşturma, 7 kişilik kadro yerleşimi, maç randevularının listelenmesi,
+/// takım üyeliği doğrulaması ve randevu gizleme işlemlerini SQLite üzerinden yürüten sınıf.
 class LocalTeamRepository implements TeamRepository {
   final AppDatabase appDatabase;
   final Uuid _uuid = const Uuid();
 
   LocalTeamRepository({required this.appDatabase});
 
+  /// Yeni takım oluşturur; mükerrer maç denetimi yapar, kaptanı ve kadrodaki
+  /// 7 mevkiiyi atomik transaction içerisinde 'teams', 'matches' ve 'team_members' tablolarına ekler.
   @override
   Future<TeamModel> createTeam({
     required String captainId,
@@ -43,6 +47,7 @@ class LocalTeamRepository implements TeamRepository {
 
     final db = await appDatabase.database;
 
+    // Aynı kaptan, saha, tarih ve saat için mükerrer takım denetimi
     final duplicateRows = await db.query(
       'teams',
       where:
@@ -74,6 +79,7 @@ class LocalTeamRepository implements TeamRepository {
       throw const AppException('Diziliş 7 oyuncudan oluşmalıdır.');
     }
 
+    // Kaptanın atanacağı mevkiiyi belirleme
     String resolvedCaptainPos = captainPositionKey ?? '';
     if (resolvedCaptainPos.isEmpty ||
         !validPositionKeys.contains(resolvedCaptainPos)) {
@@ -94,6 +100,7 @@ class LocalTeamRepository implements TeamRepository {
 
     final membersToInsert = <TeamMemberModel>[];
 
+    // Kadrodaki 7 mevki için takım üyelerini ve misafir oyuncuları derleme
     for (final posKey in validPositionKeys) {
       if (posKey == resolvedCaptainPos) {
         final customText = (lineup[posKey] ?? '').trim();
@@ -153,6 +160,7 @@ class LocalTeamRepository implements TeamRepository {
       endTime: endTime,
     );
 
+    // Takım, maç ve kadro kayıtlarını veritabanına kaydetme
     await db.transaction((txn) async {
       await txn.insert('teams', team.toMap());
       await txn.insert('matches', matchRecord.toMap());
@@ -164,6 +172,7 @@ class LocalTeamRepository implements TeamRepository {
     return team;
   }
 
+  /// Takım kimliği ile takımı bulur ve ilişkili üyeleriyle birlikte doldurur.
   @override
   Future<TeamModel?> getTeamById(String teamId) async {
     final db = await appDatabase.database;
@@ -177,6 +186,7 @@ class LocalTeamRepository implements TeamRepository {
     return _hydrateTeam(db, rows.first);
   }
 
+  /// Veritabanından gelen ham takım satırını kaptan adı ve üyelerle birleştirerek TeamModel nesnesine dönüştürür.
   Future<TeamModel> _hydrateTeam(
     DatabaseExecutor db,
     Map<String, Object?> teamRow,
@@ -212,6 +222,7 @@ class LocalTeamRepository implements TeamRepository {
     );
   }
 
+  /// Kullanıcının kaptan veya oyuncu olarak yer aldığı (ve silmediği) tüm maç randevularını tarih sırasıyla listeler.
   @override
   Future<List<TeamModel>> getUserAppointments(String userId) async {
     final db = await appDatabase.database;
@@ -259,6 +270,7 @@ class LocalTeamRepository implements TeamRepository {
     return result;
   }
 
+  /// Kullanıcının kaptanlık yaptığı aktif takımları listeler.
   @override
   Future<List<TeamModel>> getCaptainTeams(String captainId) async {
     final db = await appDatabase.database;
@@ -287,6 +299,7 @@ class LocalTeamRepository implements TeamRepository {
     return result;
   }
 
+  /// Kullanıcının sohbet sekmesinde mesajlaşabileceği takımları getirir.
   @override
   Future<List<TeamModel>> getUserChatTeams(String userId) async {
     final db = await appDatabase.database;
@@ -325,6 +338,8 @@ class LocalTeamRepository implements TeamRepository {
     return result;
   }
 
+  /// Randevuyu kullanıcının listesinde gizler (dismissed_appointments tablosuna ekler);
+  /// tek kişilik kaptan takımıysa bekleyen davetleri de iptal eder.
   @override
   Future<void> deleteAppointmentForUser({
     required String teamId,
@@ -371,6 +386,7 @@ class LocalTeamRepository implements TeamRepository {
     });
   }
 
+  /// Kullanıcının bu takımda kaptan veya kayıtlı oyuncu üye olup olmadığını doğrular.
   @override
   Future<bool> isUserMemberOfTeam({
     required String teamId,

@@ -2,6 +2,7 @@
 
 import 'team_model.dart';
 
+/// Oyuncuya gönderilen mevki davetinin mevcut durumunu belirten numaralandırma (Enum).
 enum InvitationStatus {
   pending('Pending', 'Beklemede'),
   accepted('Accepted', 'Kabul Edildi'),
@@ -13,6 +14,7 @@ enum InvitationStatus {
 
   const InvitationStatus(this.value, this.labelTr);
 
+  /// Dize değerinden ilgili InvitationStatus enum elemanını çözer
   static InvitationStatus fromValue(String value) {
     return InvitationStatus.values.firstWhere(
       (s) => s.value.toLowerCase() == value.toLowerCase(),
@@ -21,6 +23,7 @@ enum InvitationStatus {
   }
 }
 
+/// Kaptanın boş bir mevkiye oyuncu çağırmasını ve davet yanıtını temsil eden model.
 class InvitationModel {
   final String id;
   final String teamId;
@@ -48,8 +51,10 @@ class InvitationModel {
     this.team,
   });
 
+  /// Davetin henüz yanıtlanmamış (beklemede) olup olmadığını belirtir
   bool get isPending => status == InvitationStatus.pending;
 
+  /// Modeli SQLite veritabanına kaydetmek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -63,6 +68,7 @@ class InvitationModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory InvitationModel.fromMap(
     Map<String, dynamic> map, {
     String senderName = '',

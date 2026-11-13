@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
+/// Giriş, kayıt ve karşılama ekranlarında 7v7 marka logosunu,
+/// opsiyonel başlık ve alt başlığıyla birlikte oluşturan görsel bileşen.
 class AppLogoWidget extends StatelessWidget {
   final double size;
   final bool showTitle;
@@ -21,6 +23,7 @@ class AppLogoWidget extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Uygulama logosu (görsel yüklenemezse yedek ikon ve metin gösterilir)
         Container(
           width: size,
           height: size,
@@ -64,6 +67,8 @@ class AppLogoWidget extends StatelessWidget {
             },
           ),
         ),
+
+        // Başlık ve slogan metinleri
         if (showTitle) ...[
           const SizedBox(height: 12),
           Text(

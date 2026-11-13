@@ -9,6 +9,8 @@ import '../../../shared/widgets/appointment_card.dart';
 import '../../../shared/widgets/notification_icon.dart';
 import '../../../shared/widgets/state_widgets.dart';
 
+/// Kullanıcının kaptan veya oyuncu olarak dahil olduğu tüm aktif maç randevularını
+/// tarih ve saat sırasıyla listeleyen, randevuyu listeden silme imkanı sunan ekran.
 class AppointmentsScreen extends ConsumerWidget {
   const AppointmentsScreen({super.key});
 
@@ -34,6 +36,7 @@ class AppointmentsScreen extends ConsumerWidget {
             onRetry: () => triggerGlobalRefresh(ref),
           ),
           data: (appointments) {
+            // Kayıtlı randevu bulunmuyorsa gösterilen boş durum
             if (appointments.isEmpty || user == null) {
               return EmptyStateWidget(
                 icon: Icons.event_busy_rounded,
@@ -48,6 +51,7 @@ class AppointmentsScreen extends ConsumerWidget {
               );
             }
 
+            // Randevu kartlarının listelendiği yenilenebilir liste
             return RefreshIndicator(
               onRefresh: () async => triggerGlobalRefresh(ref),
               child: ListView.builder(

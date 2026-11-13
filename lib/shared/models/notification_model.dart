@@ -1,5 +1,6 @@
 // Kullanıcıya gösterilen bildirim öğelerini temsil eden veri modelidir.
 
+/// Bildirimin türünü (Davet, Kabul, Ret, Bilgi) belirten numaralandırma.
 enum NotificationType {
   teamInvitation('teamInvitation', 'Takım Daveti'),
   invitationAccepted('invitationAccepted', 'Davet Kabul Edildi'),
@@ -11,6 +12,7 @@ enum NotificationType {
 
   const NotificationType(this.value, this.labelTr);
 
+  /// Dize değerinden ilgili NotificationType enum elemanını çözer
   static NotificationType fromValue(String value) {
     return NotificationType.values.firstWhere(
       (t) => t.value == value,
@@ -19,6 +21,7 @@ enum NotificationType {
   }
 }
 
+/// Kullanıcıya iletilen sistem ve maç daveti bildirimlerini temsil eden model.
 class NotificationModel {
   final String id;
   final String receiverId;
@@ -46,6 +49,7 @@ class NotificationModel {
     required this.createdAt,
   });
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -61,6 +65,7 @@ class NotificationModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory NotificationModel.fromMap(
     Map<String, dynamic> map, {
     String senderName = '',

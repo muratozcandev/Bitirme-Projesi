@@ -7,6 +7,8 @@ import '../../../app/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/notification_icon.dart';
 
+/// Kullanıcının ad, soyad, e-posta, telefon gibi kişisel bilgilerini gösteren;
+/// açık/koyu tema geçiş anahtarı ve oturumu kapatma (logout) butonu sunan profil ekranı.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -39,6 +41,7 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Kullanıcı baş harfleri, tam adı ve e-posta kartı
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -83,6 +86,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
 
+                  // Kişisel ayrıntılar listesi (ad, soyad, e-posta, telefon)
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -125,6 +129,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
 
+                  // Açık / Koyu tema geçiş seçeneği kartı
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -175,6 +180,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 18),
 
+                  // Oturumu kapatma (logout) butonu
                   OutlinedButton.icon(
                     key: const Key('profile_logout_button'),
                     style: OutlinedButton.styleFrom(
@@ -204,6 +210,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+/// Profil ekranında sol ikon, başlık ve değeri düzenli biçimde gösteren bilgi satırı.
 class _ProfileDetailTile extends StatelessWidget {
   final IconData icon;
   final String label;

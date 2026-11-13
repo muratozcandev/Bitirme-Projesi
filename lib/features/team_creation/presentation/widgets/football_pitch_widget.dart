@@ -5,6 +5,8 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../shared/models/formation.dart';
 import '../../../../shared/widgets/player_position_button.dart';
 
+/// Yeşil çim şeritleri, saha çizgileri, ceza sahaları ve orta yuvarlağı
+/// CustomPainter ile çizen, seçili dizilişe göre oyuncu butonlarını yerleştiren saha bileşeni.
 class FootballPitchWidget extends StatelessWidget {
   final Formation formation;
   final Map<String, String> lineup;
@@ -21,6 +23,7 @@ class FootballPitchWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mevkileri forvet, orta saha, defans ve kaleci hatlarına ayırma
     final slots = formation.positions;
     final forwards =
         slots.where((s) => s.line == PositionLine.forward).toList();
@@ -52,9 +55,11 @@ class FootballPitchWidget extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Halı saha çizgilerini ve çim dokusunu çizen özel ressam
             CustomPaint(
               painter: _PitchMarkingsPainter(),
             ),
+            // Sahadaki hatları dikey eksende sıralama
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
               child: Column(
@@ -76,6 +81,7 @@ class FootballPitchWidget extends StatelessWidget {
     );
   }
 
+  /// Belirli bir hattaki (forvet, defans vb.) oyuncu mevkii butonlarını yatayda eşit aralıklarla çizer.
   Widget _buildLineRow(List<PlayerPositionSlot> rowSlots) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -97,9 +103,11 @@ class FootballPitchWidget extends StatelessWidget {
   }
 }
 
+/// Halı sahanın çim tonlarını, taç ve kale çizgilerini, ceza sahalarını ve orta yuvarlağını çizen CustomPainter.
 class _PitchMarkingsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    // 8 adet açık ve koyu yeşil çim deseni şeridi çizimi
     const stripeCount = 8;
     final stripeHeight = size.height / stripeCount;
     for (var i = 0; i < stripeCount; i++) {
@@ -116,9 +124,11 @@ class _PitchMarkingsPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
+    // Dış saha sınır çizgisi
     final outerRect = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
     canvas.drawRect(outerRect, linePaint);
 
+    // Orta saha çizgisi ve orta daire
     final midY = size.height / 2;
     canvas.drawLine(
       Offset(10, midY),
@@ -132,6 +142,7 @@ class _PitchMarkingsPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(size.width / 2, midY), 3.5, spotPaint);
 
+    // Ceza sahası yay ve kutuları
     final penaltyWidth = size.width * 0.54;
     final penaltyHeight = size.height * 0.14;
     final penaltyLeft = (size.width - penaltyWidth) / 2;
@@ -151,6 +162,7 @@ class _PitchMarkingsPainter extends CustomPainter {
       linePaint,
     );
 
+    // Kale alanı çizgileri
     final goalWidth = size.width * 0.28;
     final goalHeight = size.height * 0.055;
     final goalLeft = (size.width - goalWidth) / 2;

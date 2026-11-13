@@ -5,6 +5,8 @@ import '../../app/theme/app_theme.dart';
 import '../models/invitation_model.dart';
 import '../models/team_member_model.dart';
 
+/// Bildirimler ekranında gelen maç davetlerini, saha/tarih detaylarını,
+/// davet durumunu ve Kabul Et / Reddet aksiyonlarını sunan kart bileşeni.
 class InvitationCard extends StatelessWidget {
   final InvitationModel invitation;
   final VoidCallback? onAccept;
@@ -31,6 +33,7 @@ class InvitationCard extends StatelessWidget {
       for (final m in team.members) m.position: m,
     };
 
+    // Davet durumuna göre renk seçimi
     final Color statusColor;
     switch (invitation.status) {
       case InvitationStatus.pending:
@@ -48,6 +51,7 @@ class InvitationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Davet başlığı, gönderen kişi ve durum rozeti
             Row(
               children: [
                 CircleAvatar(
@@ -104,6 +108,8 @@ class InvitationCard extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 10),
+
+            // Maç detayları (konum, halı saha, tarih, diziliş)
             _DetailLine(
               label: 'İl / İlçe:',
               value: '${team.province} / ${team.district}',
@@ -121,6 +127,8 @@ class InvitationCard extends StatelessWidget {
               value: team.formation.label,
             ),
             const SizedBox(height: 8),
+
+            // Takım kadro önizlemesi ve kullanıcının atanacağı mevkii
             Text(
               'Takım Kadrosu:',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -166,6 +174,8 @@ class InvitationCard extends StatelessWidget {
                 );
               }).toList(),
             ),
+
+            // Beklemedeki davetler için Kabul Et ve Reddet butonları
             if (invitation.isPending &&
                 onAccept != null &&
                 onReject != null) ...[
@@ -207,6 +217,7 @@ class InvitationCard extends StatelessWidget {
   }
 }
 
+/// Davet kartında sol etiket ve sağ değer metnini düzenleyen yardımcı satır.
 class _DetailLine extends StatelessWidget {
   final String label;
   final String value;

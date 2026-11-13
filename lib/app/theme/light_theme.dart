@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
+/// Gündüz kullanımı için aydınlık tema renk şemasını ve bileşen stillerini derler.
 ThemeData buildLightTheme() {
+  // Açık tema renk paleti ve kontrast değerleri
   const colorScheme = ColorScheme.light(
     primary: AppColors.primaryDarkGreen,
     onPrimary: Colors.white,
@@ -28,6 +30,8 @@ ThemeData buildLightTheme() {
     brightness: Brightness.light,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AppColors.lightBackground,
+
+    // Üst çubuk (AppBar) açık tema stilleri
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.primaryDarkGreen,
       foregroundColor: Colors.white,
@@ -40,6 +44,8 @@ ThemeData buildLightTheme() {
         letterSpacing: 0.3,
       ),
     ),
+
+    // Bilgi kartları (Card) için kenarlık ve gölge stilleri
     cardTheme: CardThemeData(
       color: AppColors.lightSurface,
       elevation: 1.5,
@@ -50,6 +56,8 @@ ThemeData buildLightTheme() {
       ),
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
     ),
+
+    // Dolgulu aksiyon butonları (ElevatedButton)
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryDarkGreen,
@@ -67,6 +75,8 @@ ThemeData buildLightTheme() {
         ),
       ),
     ),
+
+    // Çerçeveli ikincil butonlar (OutlinedButton)
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryDarkGreen,
@@ -81,6 +91,8 @@ ThemeData buildLightTheme() {
         ),
       ),
     ),
+
+    // Form metin giriş alanları (InputDecorationTheme)
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
@@ -106,6 +118,8 @@ ThemeData buildLightTheme() {
         borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
     ),
+
+    // Alt gezinme çubuğu stilleri (NavigationBarTheme)
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       indicatorColor: AppColors.pitchGreen.withValues(alpha: 0.18),
@@ -130,6 +144,8 @@ ThemeData buildLightTheme() {
         return const IconThemeData(color: Color(0xFF64748B), size: 23);
       }),
     ),
+
+    // Bildirim ve uyarı çubukları (SnackBar)
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

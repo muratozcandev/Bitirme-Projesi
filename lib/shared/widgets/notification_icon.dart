@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/app_providers.dart';
 
+/// AppBar üzerinde yer alan, okunmamış bildirim sayısını kırmızı bir
+/// sayaç rozeti (badge) olarak gösteren ve tıklandığında bildirimler
+/// ekranına yönlendiren ikon bileşeni.
 class NotificationIcon extends ConsumerWidget {
   const NotificationIcon({super.key});
 
@@ -22,6 +25,7 @@ class NotificationIcon extends ConsumerWidget {
         clipBehavior: Clip.none,
         children: [
           const Icon(Icons.notifications_outlined, size: 26),
+          // Okunmamış bildirim varsa kırmızı sayaç rozeti çizilir
           if (unreadCount > 0)
             Positioned(
               right: -4,

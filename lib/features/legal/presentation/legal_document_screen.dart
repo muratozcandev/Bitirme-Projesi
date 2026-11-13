@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../data/legal_texts.dart';
 
+/// Belirtilen yasal doküman tipine (kullanıcı sözleşmesi veya KVKK) göre tam metni
+/// kaydırılabilir kart içerisinde sunan ve 'Okudum ve Anladım' butonuyla onaylatan ekran.
 class LegalDocumentScreen extends StatelessWidget {
   final String documentType;
 
@@ -11,6 +13,7 @@ class LegalDocumentScreen extends StatelessWidget {
     required this.documentType,
   });
 
+  /// Açılan belgenin KVKK Aydınlatma Metni olup olmadığını belirler.
   bool get _isKvkk => documentType == 'kvkk';
 
   @override
@@ -28,6 +31,7 @@ class LegalDocumentScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
+            // Bilgilendirme üst şeridi
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -57,6 +61,8 @@ class LegalDocumentScreen extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Seçilebilir yasal metin gövdesi
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -73,6 +79,8 @@ class LegalDocumentScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Onaylama butonu
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: SizedBox(

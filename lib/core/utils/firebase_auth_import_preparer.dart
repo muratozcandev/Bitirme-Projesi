@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'password_hasher.dart';
 
+/// Test amaçlı tanımlanan futbolcu profillerinin kimlik ve parola özelliklerini temsil eden model.
 class SeedAuthUserSpec {
   final String id;
   final String firstName;
@@ -28,16 +29,22 @@ class SeedAuthUserSpec {
   String get fullName => '$firstName $lastName'.trim();
 }
 
+/// Firebase CLI `auth:import` aracı ile sisteme aktarılacak 10 hazır test kullanıcısının
+/// parola özetlerini, Base64 dönüşümlerini ve çakışma kontrollerini gerçekleştiren yardımcı sınıf.
 class FirebaseAuthImportPreparer {
   FirebaseAuthImportPreparer._();
 
+  // Test hesapları için standart başlangıç oluşturulma tarihi
   static final DateTime _seedTime = DateTime.utc(2026, 1, 1, 12, 0);
 
+  // Parola tuzlama sabit değeri
   static const String effectiveSaltRaw = '7v7_hali_saha_secure_salt_v1:';
 
+  /// Firebase Authentication tarafından kabul edilen Base64 formatındaki tuz değeri
   static String get effectiveSaltBase64 =>
       base64Encode(utf8.encode(effectiveSaltRaw));
 
+  /// Sistemde önceden tanımlı 10 efsanevi futbolcu test hesabının listesi
   static List<SeedAuthUserSpec> get seedUserSpecs => [
         SeedAuthUserSpec(
           id: 'seed_user_1',
@@ -141,6 +148,7 @@ class FirebaseAuthImportPreparer {
         ),
       ];
 
+  /// Hexadecimal formatındaki SHA-256 özetini Base64 bayt dizisine dönüştürür
   static String hexSha256ToBase64(String hexHash) {
     final normalized = hexHash.trim().toLowerCase();
     if (normalized.length != 64) {
@@ -155,6 +163,7 @@ class FirebaseAuthImportPreparer {
     return base64Encode(bytes);
   }
 
+  /// Firebase CLI'ın içsel SHA-256 hash mekanizmasını birebir simüle eder
   static String simulateFirebaseCliSha256({
     required String plainPassword,
     required String saltBase64,
@@ -166,6 +175,7 @@ class FirebaseAuthImportPreparer {
     return base64Encode(digest.bytes);
   }
 
+  /// Firebase CLI içe aktarma formatına uygun JSON veri yükünü (payload) derler
   static Map<String, dynamic> buildImportJsonPayload() {
     final saltB64 = effectiveSaltBase64;
 
@@ -187,6 +197,7 @@ class FirebaseAuthImportPreparer {
     };
   }
 
+  /// 10 hazır test kullanıcısının şifre ve hash bütünlüğünü doğrular
   static List<Map<String, String>> verifyAllTenSeedUsers() {
     final saltB64 = effectiveSaltBase64;
     final results = <Map<String, String>>[];
@@ -224,6 +235,7 @@ class FirebaseAuthImportPreparer {
     return results;
   }
 
+  /// Mevcut kullanıcılar ile tohumlanacak test kullanıcıları arasında UID veya e-posta çakışması olup olmadığını denetler
   static List<String> checkCollisionsWithExistingUsers(
     List<Map<String, dynamic>> existingFirebaseUsers,
   ) {

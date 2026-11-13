@@ -15,6 +15,9 @@ import '../../../shared/models/user_model.dart';
 import '../domain/auth_repository.dart';
 import 'local_auth_repository.dart';
 
+/// Firebase Authentication ve Cloud Firestore kullanarak kullanıcı kaydı,
+/// e-posta/şifre girişi, oturum takibi ve yerel SQLite senkronizasyonunu yönetir.
+/// Ağ erişimi olmadığında veya Firebase kullanılamadığında yerel depoya güvenli geçiş sağlar.
 class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuth? _firebaseAuth;
   final FirebaseFirestore? _firestore;
@@ -35,6 +38,7 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
+  /// Firebase Auth hata kodunun ağ veya ortam kısıtından kaynaklanıp kaynaklanmadığını denetler.
   bool _isNetworkOrEnvironmentAuthError(FirebaseAuthException e) {
     final code = e.code.toLowerCase();
     return code == 'network-request-failed' ||
@@ -44,6 +48,7 @@ class FirebaseAuthRepository implements AuthRepository {
         code == 'unavailable';
   }
 
+  /// Firestore hata kodunun ağ kesintisi veya servis erişilemezliğinden kaynaklandığını denetler.
   bool _isNetworkOrUnavailableFirestoreError(FirebaseException e) {
     final code = e.code.toLowerCase();
     return code == 'unavailable' ||
@@ -51,6 +56,7 @@ class FirebaseAuthRepository implements AuthRepository {
         code == 'deadline-exceeded';
   }
 
+  /// Başlatılmış geçerli FirebaseAuth örneğini döndürür, null ise hata fırlatır.
   FirebaseAuth get _auth {
     final instance = _firebaseAuth;
     if (instance == null) {
@@ -61,6 +67,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return instance;
   }
 
+  /// Başlatılmış geçerli FirebaseFirestore örneğini döndürür, null ise hata fırlatır.
   FirebaseFirestore get _db {
     final instance = _firestore;
     if (instance == null) {
@@ -71,6 +78,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return instance;
   }
 
+  /// Firebase Authentication hatalarını kullanıcı dostu Türkçe hata mesajlarına dönüştürür.
   AppException _mapFirebaseAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
@@ -124,6 +132,7 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Kullanıcı profil verilerini yerel SQLite önbelleğine yazar veya günceller.
   Future<void> _syncProfileToLocalCache(UserModel user) async {
     final sqlite = await appDatabase.database;
     final existingRows = await sqlite.query(
@@ -168,6 +177,7 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
+  /// Kullanıcının yerel SQLite tablosundaki yasal onay (kullanıcı sözleşmesi ve KVKK) kayıtlarını sorgular.
   Future<({bool termsAccepted, bool kvkkAccepted})> _getVerifiedLocalConsents(
     String userId,
   ) async {
@@ -182,6 +192,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return (termsAccepted: hasTerms, kvkkAccepted: hasKvkk);
   }
 
+  /// SQLite yerel önbelleğinde kayıtlı kullanıcı profilini getirir.
   Future<UserModel?> _getLocalCachedUser(String userId) async {
     final sqlite = await appDatabase.database;
     final rows = await sqlite.query(
@@ -202,6 +213,7 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
+  /// Kullanıcı profilini önce SQLite önbelleğinde arar, eksikse tohum (seed) verilerden tamamlar.
   Future<UserModel?> _resolveLocalOrSeedProfile(String uid) async {
     final fromSqlite = await _getLocalCachedUser(uid);
     if (fromSqlite != null && fromSqlite.phone.trim().isNotEmpty) {
@@ -236,6 +248,8 @@ class FirebaseAuthRepository implements AuthRepository {
     return fromSqlite;
   }
 
+  /// Oturumu açık Firebase kullanıcısını ve Firestore profilini getirir;
+  /// Firebase erişilemezse yerel SQLite önbelleğine başvurur.
   @override
   Future<UserModel?> getCurrentUser() async {
     final auth = _firebaseAuth;
@@ -280,6 +294,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return null;
   }
 
+  /// Belirtilen kimliğe sahip kullanıcı profilini Firestore veya yerel önbellekten getirir.
   @override
   Future<UserModel?> getUserById(String userId) async {
     final firestore = _firestore;
@@ -298,6 +313,8 @@ class FirebaseAuthRepository implements AuthRepository {
     return _getLocalCachedUser(userId);
   }
 
+  /// E-posta ve şifre ile Firebase Authentication oturumu açar,
+  /// Firestore profilini okur ve yerel SQLite ile senkronize eder.
   @override
   Future<UserModel> login({
     required String identifier,
@@ -491,6 +508,8 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Yeni kullanıcı hesabı oluşturur, telefon numarasını phone_lookup tablosunda
+  /// atomik işlemle rezerve eder, kullanıcı profilini Firestore ve SQLite'a yazar.
   @override
   Future<UserModel> register({
     required String firstName,
@@ -605,9 +624,10 @@ class FirebaseAuthRepository implements AuthRepository {
 
       return newUser;
     } on AppException {
-      if (credential?.user != null) {
+      final createdUser = credential?.user;
+      if (createdUser != null) {
         try {
-          await credential!.user!.delete();
+          await createdUser.delete();
         } catch (_) {
           await _auth.signOut();
         }
@@ -628,8 +648,9 @@ class FirebaseAuthRepository implements AuthRepository {
       throw _mapFirebaseAuthException(e);
     } on FirebaseException catch (e) {
       if (_isNetworkOrUnavailableFirestoreError(e)) {
-        if (credential?.user != null) {
-          final uid = credential!.user!.uid;
+        final createdUser = credential?.user;
+        if (createdUser != null) {
+          final uid = createdUser.uid;
           final now = DateTime.now();
           final fallbackUser = UserModel(
             id: uid,
@@ -683,9 +704,10 @@ class FirebaseAuthRepository implements AuthRepository {
           acceptedKvkk: acceptedKvkk,
         );
       }
-      if (credential?.user != null) {
+      final createdUser = credential?.user;
+      if (createdUser != null) {
         try {
-          await credential!.user!.delete();
+          await createdUser.delete();
         } catch (_) {
           await _auth.signOut();
         }
@@ -703,6 +725,7 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  /// Kullanıcı oturumunu Firebase ve yerel SharedPreferences üzerinden kapatır.
   @override
   Future<void> logout() async {
     if (_firebaseAuth != null) {
@@ -711,6 +734,7 @@ class FirebaseAuthRepository implements AuthRepository {
     await prefs.remove(AppConstants.prefActiveUserIdKey);
   }
 
+  /// Kullanıcının tema tercihini hem Firestore hem de yerel SQLite üzerinde günceller.
   @override
   Future<UserModel> updateThemeMode({
     required String userId,
@@ -741,6 +765,7 @@ class FirebaseAuthRepository implements AuthRepository {
     return updated.copyWith(themeMode: themeMode);
   }
 
+  /// Takıma davet edilebilecek diğer oyuncuları SQLite veritabanından listeler.
   @override
   Future<List<UserModel>> getSuggestedPlayers(String currentUserId) async {
     final byId = <String, UserModel>{};

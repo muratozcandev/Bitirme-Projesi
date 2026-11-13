@@ -1,5 +1,6 @@
 // Maç konum, tarih ve saat bilgilerini temsil eden veri modelidir.
 
+/// Bir halı saha maçının oynanacağı tesis, il/ilçe, gün ve saat aralığını tutan model.
 class MatchModel {
   final String id;
   final String teamId;
@@ -21,6 +22,7 @@ class MatchModel {
     required this.endTime,
   });
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -34,6 +36,7 @@ class MatchModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory MatchModel.fromMap(Map<String, dynamic> map) {
     return MatchModel(
       id: map['id'] as String,

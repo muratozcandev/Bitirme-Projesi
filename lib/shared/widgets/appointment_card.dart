@@ -5,6 +5,8 @@ import '../../app/theme/app_theme.dart';
 import '../models/team_member_model.dart';
 import '../models/team_model.dart';
 
+/// Randevular ekranında kullanıcının kaptan veya oyuncu olarak katıldığı
+/// maçı, saha/tarih/saat bilgilerini ve kadro dizilimini gösteren kart.
 class AppointmentCard extends StatelessWidget {
   final TeamModel team;
   final String currentUserId;
@@ -17,8 +19,10 @@ class AppointmentCard extends StatelessWidget {
     required this.onDeleteConfirmed,
   });
 
+  /// Kullanıcının bu takımın kaptanı olup olmadığını belirler.
   bool get _isCaptain => team.captainId == currentUserId;
 
+  /// Kullanıcının bu takımdaki rol ve mevki etiketini oluşturur.
   String get _userRoleLabel {
     if (_isCaptain) return 'Takım Kaptanı';
     final myMember =
@@ -30,6 +34,7 @@ class AppointmentCard extends StatelessWidget {
     return 'Takım Üyesi';
   }
 
+  /// Kullanıcıdan randevuyu listeden silmek için onay isteyen iletişim kutusu.
   Future<void> _showDeleteDialog(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -75,6 +80,7 @@ class AppointmentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Takım başlığı, rol rozeti ve silme menüsü
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -185,6 +191,7 @@ class AppointmentCard extends StatelessWidget {
             const Divider(height: 1),
             const SizedBox(height: 12),
 
+            // Saha, konum, tarih ve saat bilgileri
             _InfoRow(
               icon: Icons.location_on_outlined,
               label: 'İl / İlçe:',
@@ -217,6 +224,7 @@ class AppointmentCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
+            // Takım kadro doluluk durumu ve mevki etiketleri
             Text(
               'Takım Kadrosu (${team.members.length}/7 Dolu)',
               style: theme.textTheme.labelLarge?.copyWith(
@@ -291,6 +299,7 @@ class AppointmentCard extends StatelessWidget {
   }
 }
 
+/// Randevu kartında ikon, etiket ve metin değerini hizalayan yardımcı bilgi satırı.
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;

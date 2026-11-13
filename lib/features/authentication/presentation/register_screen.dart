@@ -11,6 +11,8 @@ import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../legal/presentation/legal_document_screen.dart';
 
+/// Ad, soyad, e-posta, telefon ve şifre bilgilerini alarak;
+/// Kullanıcı Sözleşmesi ve KVKK onayları eşliğinde yeni hesap oluşturan kayıt ekranı.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -40,6 +42,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  /// Kullanıcı Sözleşmesi veya KVKK metnini tam sayfa açar ve onaylanırsa ilgili onay kutusunu işaretler.
   Future<void> _openLegalDocument(String docType) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -57,6 +60,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  /// Form alanlarını ve yasal sözleşme onaylarını denetler; geçerliyse kayıt isteğini tetikler.
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -143,12 +147,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Uygulama logosu
                     const AppLogoWidget(
                       size: 68,
                       showTitle: false,
                       showSubtitle: false,
                     ),
                     const SizedBox(height: 16),
+
+                    // Kayıt formu kartı
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(18),
@@ -169,6 +176,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
+
+                            // Ad ve soyad alanları
                             CustomTextField(
                               key: const Key('register_first_name_field'),
                               controller: _firstNameController,
@@ -191,6 +200,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   Validators.validateRequired(v, 'Soyad'),
                             ),
                             const SizedBox(height: 12),
+
+                            // E-posta ve telefon alanları
                             CustomTextField(
                               key: const Key('register_email_field'),
                               controller: _emailController,
@@ -213,6 +224,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               validator: Validators.validatePhone,
                             ),
                             const SizedBox(height: 12),
+
+                            // Şifre alanı
                             CustomTextField(
                               key: const Key('register_password_field'),
                               controller: _passwordController,
@@ -244,6 +257,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
+
+                            // Hesap oluştur butonu
                             CustomButton(
                               key: const Key('register_submit_button'),
                               label: 'Hesap Oluştur',
@@ -253,6 +268,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                             const SizedBox(height: 16),
                             const Divider(),
+
+                            // Kullanıcı sözleşmesi onay kutusu ve bağlantısı
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
@@ -301,6 +318,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ],
                             ),
+
+                            // KVKK onay kutusu ve bağlantısı
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [

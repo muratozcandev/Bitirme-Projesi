@@ -7,6 +7,8 @@ import '../../../data/database/app_database.dart';
 import '../../../data/seed/seed_data.dart';
 import '../domain/location_repository.dart';
 
+/// İl ve ilçe JSON dosyalarından konum verilerini bellek önbelleği ile okuyan,
+/// ilçelere ait halı saha isimlerini SQLite tablosundan getiren veya tohumlayan sınıf.
 class LocalLocationRepository implements LocationRepository {
   final AppDatabase appDatabase;
   List<String>? _cachedProvinces;
@@ -17,6 +19,7 @@ class LocalLocationRepository implements LocationRepository {
   static const String _turkishAlphabet =
       'AaBbCcÇçDdEeFfGgĞğHhIıİiJjKkLlMmNnOoÖöPpRrSsŞşTtUuÜüVvYyZz';
 
+  /// Türkçe karakter kurallarına (Ç, Ğ, İ, Ö, Ş, Ü) uygun alfabetik sıralama karşılaştırıcısı.
   static int compareTurkish(String a, String b) {
     final len = a.length < b.length ? a.length : b.length;
     for (var i = 0; i < len; i++) {
@@ -32,6 +35,7 @@ class LocalLocationRepository implements LocationRepository {
     return a.length.compareTo(b.length);
   }
 
+  /// Türkiye'nin 81 ilini `provinces.json` varlığından yükler ve Türkçe alfabetik olarak sıralar.
   @override
   Future<List<String>> getProvinces() async {
     if (_cachedProvinces != null) {
@@ -46,6 +50,7 @@ class LocalLocationRepository implements LocationRepository {
     return list;
   }
 
+  /// Seçili ile bağlı ilçeleri `districts.json` dosyasından okur ve sıralı liste olarak döndürür.
   @override
   Future<List<String>> getDistricts(String province) async {
     if (_cachedDistricts == null) {
@@ -64,6 +69,8 @@ class LocalLocationRepository implements LocationRepository {
     return _cachedDistricts![province] ?? <String>[];
   }
 
+  /// Seçilen il ve ilçedeki halı sahaları SQLite önbelleğinden getirir;
+  /// kayıt yoksa deterministik saha isimleri türetip önbelleğe kaydeder.
   @override
   Future<List<String>> getVenues({
     required String province,

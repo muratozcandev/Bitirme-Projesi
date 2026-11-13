@@ -5,7 +5,10 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+/// Çalışılan platforma (Android, iOS, macOS, Web, Windows) uygun
+/// Firebase yapılandırma anahtarlarını sağlayan sınıf.
 class DefaultFirebaseOptions {
+  /// Çalışma anındaki platformu tespit edip uygun FirebaseOptions nesnesini döndürür.
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -31,6 +34,7 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Web platformu için Firebase bağlantı ayarları
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyATmvNMmHYF3zN183rjD4weSR9JEsoPxLQ',
     appId: '1:474442832476:web:fd45349782ab98644d2499',
@@ -40,6 +44,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'v7-app-341ae.firebasestorage.app',
   );
 
+  // Android platformu için Firebase bağlantı ayarları
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBPEUBgNws2jWdI19e4egYdVDxkaBB7jSU',
     appId: '1:474442832476:android:a9062c9312198a664d2499',
@@ -48,6 +53,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'v7-app-341ae.firebasestorage.app',
   );
 
+  // iOS platformu için Firebase bağlantı ayarları
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAXq0R74XCfLJMrAyPWaEUHgeuvHbWU1n8',
     appId: '1:474442832476:ios:69c5dfda4a78d7ff4d2499',
@@ -57,6 +63,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.sevenVseven.app.haliSaha7v7',
   );
 
+  // macOS masaüstü platformu için Firebase bağlantı ayarları
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAXq0R74XCfLJMrAyPWaEUHgeuvHbWU1n8',
     appId: '1:474442832476:ios:69c5dfda4a78d7ff4d2499',
@@ -66,6 +73,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.sevenVseven.app.haliSaha7v7',
   );
 
+  // Windows platformu için Firebase bağlantı ayarları
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyATmvNMmHYF3zN183rjD4weSR9JEsoPxLQ',
     appId: '1:474442832476:web:4ec4e4dac54d86544d2499',

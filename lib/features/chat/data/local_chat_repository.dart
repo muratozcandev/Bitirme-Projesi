@@ -7,6 +7,8 @@ import '../../../shared/models/message_model.dart';
 import '../../team_creation/domain/team_repository.dart';
 import '../domain/chat_repository.dart';
 
+/// SQLite veritabanı üzerinden takım odası mesajlarını saklayan,
+/// takım üyeliği erişim kontrolü yapan ve gönderen profiliyle zenginleştiren sınıf.
 class LocalChatRepository implements ChatRepository {
   final AppDatabase appDatabase;
   final TeamRepository teamRepository;
@@ -17,6 +19,7 @@ class LocalChatRepository implements ChatRepository {
     required this.teamRepository,
   });
 
+  /// Takıma ait mesajları SQLite 'messages' tablosundan okur, kullanıcının üye olup olmadığını denetler.
   @override
   Future<List<MessageModel>> getTeamMessages({
     required String teamId,
@@ -58,6 +61,7 @@ class LocalChatRepository implements ChatRepository {
     return result;
   }
 
+  /// Takım odasına mesaj ekler; göndericinin üye olduğunu doğrular ve 'messages' tablosuna kaydeder.
   @override
   Future<MessageModel> sendMessage({
     required String teamId,

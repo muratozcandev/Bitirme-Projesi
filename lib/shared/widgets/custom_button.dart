@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+/// Yüklenme durumu (loading indicator), opsiyonel ikon desteği
+/// ve dolu/çerçeveli (outlined) stil seçenekleri sunan genişletilebilir buton.
 class CustomButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -24,6 +26,7 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Yüklenme durumunda döner gösterge, aksi halde ikon ve metin içeriği
     final child = isLoading
         ? const SizedBox(
             width: 22,
@@ -50,6 +53,7 @@ class CustomButton extends StatelessWidget {
             ],
           );
 
+    // Çerçeveli (outlined) buton varyantı
     if (isOutlined) {
       return SizedBox(
         width: double.infinity,
@@ -60,6 +64,7 @@ class CustomButton extends StatelessWidget {
       );
     }
 
+    // Dolu (elevated) buton varyantı
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(

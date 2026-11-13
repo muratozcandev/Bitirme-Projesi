@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// Sekmeli gezinme kabuğunu (StatefulNavigationShell) sarmalayan
+/// ve Takım Kur, Randevularım, Profil ve Sohbet sekmeleri arasında
+/// geçişi sağlayan ana gezinme bileşeni.
 class AppBottomNavigationShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -11,6 +14,8 @@ class AppBottomNavigationShell extends StatelessWidget {
     required this.navigationShell,
   });
 
+  /// Kullanıcı alt çubuktan bir sekmeye tıkladığında ilgili daldaki
+  /// rotaya geçiş yapar; aynı sekmeye tekrar tıklanırsa kök rotaya döner.
   void _onDestinationSelected(int index) {
     navigationShell.goBranch(
       index,

@@ -10,6 +10,8 @@ import '../../../shared/models/team_member_model.dart';
 import '../../team_creation/domain/team_repository.dart';
 import '../domain/invitation_repository.dart';
 
+/// Davet gönderme, mükerrer davet kontrolü, davet kabul etme (kadroya ekleme),
+/// reddetme ve bildirim oluşturma işlemlerini SQLite üzerinde yürüten sınıf.
 class LocalInvitationRepository implements InvitationRepository {
   final AppDatabase appDatabase;
   final TeamRepository teamRepository;
@@ -20,6 +22,7 @@ class LocalInvitationRepository implements InvitationRepository {
     required this.teamRepository,
   });
 
+  /// Seçili oyuncuya belirli bir takımdaki boş mevki için davet gönderir ve alıcıya bildirim oluşturur.
   @override
   Future<InvitationModel> sendInvitation({
     required String teamId,
@@ -135,6 +138,7 @@ class LocalInvitationRepository implements InvitationRepository {
       createdAt: now,
     );
 
+    // Davet ve bildirim kayıtlarını atomik olarak ekleme
     await db.transaction((txn) async {
       await txn.insert('invitations', invitation.toMap());
       await txn.insert('notifications', notification.toMap());
@@ -143,6 +147,7 @@ class LocalInvitationRepository implements InvitationRepository {
     return invitation;
   }
 
+  /// Bekleyen daveti kabul eder; oyuncuyu team_members tablosuna yazar ve kaptana kabul bildirimi yollar.
   @override
   Future<InvitationModel> acceptInvitation({
     required String invitationId,
@@ -280,6 +285,7 @@ class LocalInvitationRepository implements InvitationRepository {
     return updated;
   }
 
+  /// Daveti reddeder, durumunu 'rejected' yapar ve gönderen kaptana ret bildirimi yollar.
   @override
   Future<InvitationModel> rejectInvitation({
     required String invitationId,
@@ -370,6 +376,7 @@ class LocalInvitationRepository implements InvitationRepository {
     return updated;
   }
 
+  /// Veritabanından okunan davet kaydına gönderen, alıcı ve takım detaylarını iliştirir.
   Future<InvitationModel> _hydrateInvitation(
     Database db,
     Map<String, Object?> row,
@@ -410,6 +417,7 @@ class LocalInvitationRepository implements InvitationRepository {
     );
   }
 
+  /// Kimliğine göre davet kaydını getirir.
   @override
   Future<InvitationModel?> getInvitationById(String invitationId) async {
     final db = await appDatabase.database;
@@ -423,6 +431,7 @@ class LocalInvitationRepository implements InvitationRepository {
     return _hydrateInvitation(db, rows.first);
   }
 
+  /// Kullanıcının alıcısı olduğu gelen davetleri listeler.
   @override
   Future<List<InvitationModel>> getIncomingInvitations(String userId) async {
     final db = await appDatabase.database;
@@ -439,6 +448,7 @@ class LocalInvitationRepository implements InvitationRepository {
     return list;
   }
 
+  /// Kullanıcının başkalarına yolladığı giden davetleri listeler.
   @override
   Future<List<InvitationModel>> getOutgoingInvitations(String userId) async {
     final db = await appDatabase.database;

@@ -8,9 +8,12 @@ import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/invitation_card.dart';
 import '../../../shared/widgets/state_widgets.dart';
 
+/// Kullanıcıya gelen takım davetlerini ve sistem bildirimlerini listeleyen,
+/// davet kabul/ret aksiyonları ve tümünü okundu işaretleme seçeneği sunan ekran.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
+  /// Gelen takım davetini kabul eder; kullanıcıyı kadroya ekler ve bildirimleri yeniler.
   Future<void> _handleAcceptInvitation(
     BuildContext context,
     WidgetRef ref,
@@ -46,6 +49,7 @@ class NotificationsScreen extends ConsumerWidget {
     }
   }
 
+  /// Gelen takım davetini reddeder ve durumu günceller.
   Future<void> _handleRejectInvitation(
     BuildContext context,
     WidgetRef ref,
@@ -90,6 +94,7 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Bildirimler ve Davetler'),
         actions: [
+          // Tüm okunmamış bildirimleri tek tıkla okundu yapma butonu
           if (user != null)
             TextButton.icon(
               key: const Key('mark_all_notifications_read_btn'),
@@ -127,6 +132,7 @@ class NotificationsScreen extends ConsumerWidget {
                 final visibleNotifications =
                     notifications.where((n) => !n.isRead).toList();
 
+                // Hem davet hem de okunmamış bildirim yoksa boş durum gösterimi
                 if (invitations.isEmpty && visibleNotifications.isEmpty) {
                   return const EmptyStateWidget(
                     icon: Icons.notifications_off_outlined,
@@ -141,6 +147,7 @@ class NotificationsScreen extends ConsumerWidget {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
+                      // Gelen maç davetleri listesi
                       if (invitations.isNotEmpty) ...[
                         Text(
                           'Gelen Takım Davetleri (${invitations.length})',
@@ -165,6 +172,8 @@ class NotificationsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                       ],
+
+                      // Sistem ve yanıt bildirimleri listesi
                       if (visibleNotifications.isNotEmpty) ...[
                         Text(
                           'Tüm Bildirim Kayıtları (${visibleNotifications.length})',
@@ -243,6 +252,7 @@ class NotificationsScreen extends ConsumerWidget {
     );
   }
 
+  /// Tarih ve saat bilgisini gün.ay.yıl saat:dakika formatına dönüştürür.
   String _formatDateTime(DateTime dt) {
     final d = dt.day.toString().padLeft(2, '0');
     final m = dt.month.toString().padLeft(2, '0');

@@ -11,9 +11,13 @@ import '../../../shared/widgets/notification_icon.dart';
 import '../../../shared/widgets/state_widgets.dart';
 import '../../../shared/widgets/user_card.dart';
 
+/// İki sekmeden oluşan sohbet merkezi ekranı:
+/// 1. Oyuncu Önerileri sekmesi: Diğer oyuncuları listeler ve takıma davet gönderir.
+/// 2. Sohbet sekmesi: Kullanıcının dahil olduğu takımların sohbet odalarını listeler.
 class ChatHubScreen extends ConsumerWidget {
   const ChatHubScreen({super.key});
 
+  /// Hedef oyuncuyu kullanıcının kaptanı olduğu ve kadrosunda boş yer bulunan bir takıma davet etme iletişim kutusu.
   Future<void> _showInviteDialog(
     BuildContext context,
     WidgetRef ref,
@@ -77,6 +81,7 @@ class ChatHubScreen extends ConsumerWidget {
                       style: TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 14),
+                    // Kaptanın takımları arasından seçim
                     DropdownButtonFormField<String>(
                       initialValue: selectedTeam.id,
                       isExpanded: true,
@@ -106,6 +111,7 @@ class ChatHubScreen extends ConsumerWidget {
                       },
                     ),
                     const SizedBox(height: 14),
+                    // Takımdaki boş mevkiler arasından seçim
                     DropdownButtonFormField<String>(
                       initialValue: selectedPositionKey,
                       isExpanded: true,
@@ -224,6 +230,7 @@ class ChatHubScreen extends ConsumerWidget {
         body: SafeArea(
           child: TabBarView(
             children: [
+              // 1. Sekme: Oyuncu Önerileri Listesi
               suggestedPlayersAsync.when(
                 loading: () =>
                     const LoadingWidget(message: 'Oyuncular yükleniyor...'),
@@ -261,6 +268,7 @@ class ChatHubScreen extends ConsumerWidget {
                 },
               ),
 
+              // 2. Sekme: Takım Sohbet Odaları Listesi
               chatTeamsAsync.when(
                 loading: () => const LoadingWidget(
                     message: 'Takım sohbetleri yükleniyor...'),

@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+/// Listelerde veya arama sonuçlarında gösterilecek veri bulunmadığında
+/// açıklayıcı ikon, başlık, açıklama ve aksiyon butonu sunan durum bileşeni.
 class EmptyStateWidget extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -64,6 +66,8 @@ class EmptyStateWidget extends StatelessWidget {
   }
 }
 
+/// Asenkron veri yükleme aşamasında dairesel ilerleme çubuğu ve
+/// isteğe bağlı bilgilendirme mesajı gösteren durum bileşeni.
 class LoadingWidget extends StatelessWidget {
   final String? message;
 
@@ -86,6 +90,8 @@ class LoadingWidget extends StatelessWidget {
   }
 }
 
+/// Veri yüklenirken veya bir işlem sırasında hata oluştuğunda hata ikonu,
+/// açıklama metni ve Tekrar Dene butonu sunan durum bileşeni.
 class AppErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;

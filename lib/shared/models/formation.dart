@@ -1,5 +1,6 @@
 // 7v7 maç dizilişlerini (formasyonları) ve saha içi mevki koordinatlarını tanımlar.
 
+/// Futbol sahasındaki genel mevki hatlarını belirten numaralandırma.
 enum PositionLine {
   goalkeeper,
   defender,
@@ -7,6 +8,7 @@ enum PositionLine {
   forward,
 }
 
+/// Saha grafiği üzerindeki tek bir oyuncu mevki yuvasını ve koordinat bilgilerini temsil eden sınıf.
 class PlayerPositionSlot {
   final String key;
   final String label;
@@ -23,6 +25,7 @@ class PlayerPositionSlot {
   });
 }
 
+/// 7v7 maçları için desteklenen 6 farklı taktiksel diziliş ve mevki dağılımları.
 enum Formation {
   threeThree('3-3', 1, 3, 0, 3),
   threeOneTwo('3-1-2', 1, 3, 1, 2),
@@ -45,6 +48,7 @@ enum Formation {
     this.forwardCount,
   );
 
+  /// Etiket veya isim üzerinden ilgili Formation enum elemanını bulur
   static Formation fromLabel(String value) {
     return Formation.values.firstWhere(
       (f) => f.label == value || f.name == value,
@@ -52,8 +56,10 @@ enum Formation {
     );
   }
 
+  /// Seçili dizilişe ait Kaleci dahil tam 7 mevki yuvasını sırayla üretir
   List<PlayerPositionSlot> get positions {
     final slots = <PlayerPositionSlot>[
+      // 1. Kaleci
       const PlayerPositionSlot(
         key: 'GK_1',
         label: 'Kaleci',
@@ -63,6 +69,7 @@ enum Formation {
       ),
     ];
 
+    // 2. Defans hattı mevkileri
     for (var i = 0; i < defenderCount; i++) {
       slots.add(
         PlayerPositionSlot(
@@ -75,6 +82,7 @@ enum Formation {
       );
     }
 
+    // 3. Orta saha hattı mevkileri
     for (var i = 0; i < midfielderCount; i++) {
       slots.add(
         PlayerPositionSlot(
@@ -87,6 +95,7 @@ enum Formation {
       );
     }
 
+    // 4. Forvet (hücum) hattı mevkileri
     for (var i = 0; i < forwardCount; i++) {
       slots.add(
         PlayerPositionSlot(
@@ -102,6 +111,7 @@ enum Formation {
     return slots;
   }
 
+  /// Mevki anahtarına (Örn: 'DEF_1') karşılık gelen kullanıcı dostu Türkçe başlığı döndürür
   String labelForKey(String key) {
     for (final slot in positions) {
       if (slot.key == key || slot.label == key) {
@@ -115,6 +125,7 @@ enum Formation {
     return key;
   }
 
+  /// Diziliş değiştirildiğinde önceki kadrodaki eşleşen mevkileri koruyup geçersiz olanları filtreler
   Map<String, String> migrateLineup(Map<String, String> oldLineup) {
     final validKeys = positions.map((p) => p.key).toSet();
     final migrated = <String, String>{};

@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
+/// Gece ve düşük ışıklı ortamlar için karanlık tema şemasını ve bileşen stillerini derler.
 ThemeData buildDarkTheme() {
+  // Koyu tema renk paleti ve yüzey kontrastları
   const colorScheme = ColorScheme.dark(
     primary: AppColors.pitchGreen,
     onPrimary: Color(0xFF052E16),
@@ -28,6 +30,8 @@ ThemeData buildDarkTheme() {
     brightness: Brightness.dark,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AppColors.darkBackground,
+
+    // Üst çubuk (AppBar) koyu tema stilleri
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.darkSurface,
       foregroundColor: Colors.white,
@@ -40,6 +44,8 @@ ThemeData buildDarkTheme() {
         letterSpacing: 0.3,
       ),
     ),
+
+    // Bilgi kartları (Card) için kenarlık ve gölge stilleri
     cardTheme: CardThemeData(
       color: AppColors.darkSurface,
       elevation: 2,
@@ -50,6 +56,8 @@ ThemeData buildDarkTheme() {
       ),
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
     ),
+
+    // Dolgulu aksiyon butonları (ElevatedButton)
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.pitchGreen,
@@ -67,6 +75,8 @@ ThemeData buildDarkTheme() {
         ),
       ),
     ),
+
+    // Çerçeveli ikincil butonlar (OutlinedButton)
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.pitchGreen,
@@ -81,6 +91,8 @@ ThemeData buildDarkTheme() {
         ),
       ),
     ),
+
+    // Form metin giriş alanları (InputDecorationTheme)
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.darkCard,
@@ -106,6 +118,8 @@ ThemeData buildDarkTheme() {
         borderSide: const BorderSide(color: Color(0xFFF87171), width: 2),
       ),
     ),
+
+    // Alt gezinme çubuğu stilleri (NavigationBarTheme)
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.darkSurface,
       indicatorColor: AppColors.pitchGreen.withValues(alpha: 0.22),
@@ -130,6 +144,8 @@ ThemeData buildDarkTheme() {
         return const IconThemeData(color: Color(0xFF94A3B8), size: 23);
       }),
     ),
+
+    // Bildirim ve uyarı çubukları (SnackBar)
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

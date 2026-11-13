@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 
+/// Takıma oyuncu davet etme ekranında önerilen oyuncunun profil baş harflerini,
+/// adını, e-posta adresini ve Davet Yolla butonunu içeren kart bileşeni.
 class UserCard extends StatelessWidget {
   final UserModel player;
   final VoidCallback onInvitePressed;
@@ -21,6 +23,7 @@ class UserCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
+            // Kullanıcı baş harflerini gösteren profil avatarı
             CircleAvatar(
               radius: 24,
               backgroundColor: theme.colorScheme.primary,
@@ -34,6 +37,8 @@ class UserCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
+
+            // Oyuncu adı ve e-posta adresi
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +60,8 @@ class UserCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+
+            // Takıma davet etme butonu
             ElevatedButton.icon(
               key: Key('invite_player_btn_${player.id}'),
               onPressed: onInvitePressed,

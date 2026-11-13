@@ -2,6 +2,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Sistemdeki bir oyuncunun profil, kimlik, iletişim, tema ve yasal onay bilgilerini tutan temel model.
+/// Hem SQLite hem de Cloud Firestore ile çift yönlü serileştirme desteği sunar.
 class UserModel {
   final String id;
   final String firstName;
@@ -29,16 +31,20 @@ class UserModel {
     this.kvkkAccepted = false,
   });
 
+  /// Firebase Auth UID ile uyumluluk takma adı
   String get uid => id;
 
+  /// Ad ve soyadı birleştirilmiş tam isim olarak döndürür
   String get fullName => '$firstName $lastName'.trim();
 
+  /// Profil avatarı için isim ve soyismin ilk harflerini (Örn: 'CR') döndürür
   String get initials {
     final f = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
     final l = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
     return '$f$l';
   }
 
+  /// Mevcut modelin belirli alanlarını güncelleyerek yeni bir kopyasını üretir
   UserModel copyWith({
     String? id,
     String? firstName,
@@ -67,6 +73,7 @@ class UserModel {
     );
   }
 
+  /// Modeli yerel SQLite veritabanı formatına (Map) dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -81,6 +88,7 @@ class UserModel {
     };
   }
 
+  /// Modeli Cloud Firestore belgesine uygun formata dönüştürür (Şifre ASLA Firestore'a gönderilmez)
   Map<String, dynamic> toFirestoreMap() {
     return {
       'uid': id,
@@ -96,6 +104,7 @@ class UserModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       id: (map['id'] ?? map['uid']) as String,
@@ -112,6 +121,7 @@ class UserModel {
     );
   }
 
+  /// Cloud Firestore belgesinden model örneği oluşturur
   factory UserModel.fromFirestore(
     Map<String, dynamic> map, {
     required String docId,
@@ -133,6 +143,7 @@ class UserModel {
     );
   }
 
+  /// Farklı veri tiplerinden (Timestamp, String) DateTime dönüşümü yapan yardımcı metot
   static DateTime _parseDateTime(Object? raw) {
     if (raw is Timestamp) {
       return raw.toDate();
@@ -143,6 +154,7 @@ class UserModel {
     return DateTime.now();
   }
 
+  /// Boolean veya SQLite integer (0/1) değerini bool tipine dönüştürür
   static bool _parseBool(Object? raw, {bool defaultValue = false}) {
     if (raw is bool) return raw;
     if (raw is int) return raw == 1;

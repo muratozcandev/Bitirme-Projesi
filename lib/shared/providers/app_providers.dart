@@ -27,34 +27,49 @@ import '../models/notification_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
 
+// =============================================================================
+// 1. TEMEL ALTYAPI VE VERİTABANI SAĞLAYICILARI
+// =============================================================================
+
+/// Cihaz yerel anahtar-değer deposu sağlayıcısı (main.dart içinde override edilir)
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('sharedPreferencesProvider must be overridden');
 });
 
+/// Firebase bağlantısının hazır olup olmadığını tutan sağlayıcı
 final firebaseInitializedProvider = Provider<bool>((ref) => false);
 
+/// Firebase ana uygulama örneğini döndüren sağlayıcı
 final firebaseAppProvider = Provider<FirebaseApp?>((ref) {
   final isReady = ref.watch(firebaseInitializedProvider);
   if (!isReady || Firebase.apps.isEmpty) return null;
   return Firebase.app();
 });
 
+/// Firebase Authentication servis örneğini sağlayan sağlayıcı
 final firebaseAuthInstanceProvider = Provider<FirebaseAuth?>((ref) {
   final app = ref.watch(firebaseAppProvider);
   if (app == null) return null;
   return FirebaseAuth.instanceFor(app: app);
 });
 
+/// Cloud Firestore bulut veritabanı örneğini sağlayan sağlayıcı
 final firestoreInstanceProvider = Provider<FirebaseFirestore?>((ref) {
   final app = ref.watch(firebaseAppProvider);
   if (app == null) return null;
   return FirebaseFirestore.instanceFor(app: app);
 });
 
+/// SQLite yerel veritabanı singleton örneğini sağlayan sağlayıcı
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase.instance;
 });
 
+// =============================================================================
+// 2. REPOSITORY (VERİ ERİŞİM KATMANI) SAĞLAYICILARI
+// =============================================================================
+
+/// Çevrimdışı yerel kimlik doğrulama deposu
 final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
   return LocalAuthRepository(
     appDatabase: ref.watch(appDatabaseProvider),
@@ -62,6 +77,7 @@ final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
   );
 });
 
+/// Hibrit (Firebase ve yerel SQLite yedeklemeli) kimlik doğrulama deposu
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return FirebaseAuthRepository(
     firebaseAuth: ref.watch(firebaseAuthInstanceProvider),
@@ -71,18 +87,21 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
+/// İl, ilçe ve halı saha konum verilerini sorgulayan depo
 final locationRepositoryProvider = Provider<LocationRepository>((ref) {
   return LocalLocationRepository(
     appDatabase: ref.watch(appDatabaseProvider),
   );
 });
 
+/// Takım oluşturma, kadro ve maç randevularını yöneten depo
 final teamRepositoryProvider = Provider<TeamRepository>((ref) {
   return LocalTeamRepository(
     appDatabase: ref.watch(appDatabaseProvider),
   );
 });
 
+/// Oyuncu maç davetlerini ve yanıtlarını yöneten depo
 final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
   return LocalInvitationRepository(
     appDatabase: ref.watch(appDatabaseProvider),
@@ -90,12 +109,14 @@ final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
   );
 });
 
+/// Kullanıcı bildirimlerini yöneten depo
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return LocalNotificationRepository(
     appDatabase: ref.watch(appDatabaseProvider),
   );
 });
 
+/// Takım içi mesajlaşma ve sohbet odası deposu
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   return LocalChatRepository(
     appDatabase: ref.watch(appDatabaseProvider),
@@ -103,6 +124,11 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   );
 });
 
+// =============================================================================
+// 3. KİMLİK DOĞRULAMA VE OTURUM DURUM YÖNETİMİ (AUTH STATE & NOTIFIER)
+// =============================================================================
+
+/// Aktif oturum durumunu, kullanıcı modelini ve işlem hata/yüklenme bilgisini tutan durum sınıfı
 class AuthState {
   final UserModel? user;
   final bool isLoading;
@@ -114,6 +140,7 @@ class AuthState {
     this.error,
   });
 
+  /// Kullanıcının oturum açmış olup olmadığını belirtir
   bool get isAuthenticated => user != null;
 
   AuthState copyWith({
@@ -131,12 +158,14 @@ class AuthState {
   }
 }
 
+/// Oturum açma, kayıt olma, çıkış ve tema modu işlemlerini yöneten durum kontrolcüsü
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
   final Ref _ref;
 
   AuthNotifier(this._authRepository, this._ref) : super(const AuthState());
 
+  /// Uygulama açılışında kayıtlı kullanıcı oturumunu yükler
   Future<void> initializeSession() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -147,6 +176,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// E-posta ve şifre ile sisteme giriş yapar
   Future<bool> login({
     required String identifier,
     required String password,
@@ -158,6 +188,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
       state = AuthState(user: user, isLoading: false);
+      // Giriş yapan kullanıcının adını takım kurma ekranına kaptan olarak aktar
       _ref.read(teamCreationProvider.notifier).resetForUser(user.fullName);
       return true;
     } catch (e) {
@@ -166,6 +197,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Yeni kullanıcı kaydı oluşturur
   Future<bool> register({
     required String firstName,
     required String lastName,
@@ -194,12 +226,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Aktif kullanıcı oturumunu kapatır
   Future<void> logout() async {
     await _authRepository.logout();
     state = const AuthState(user: null, isLoading: false);
     _ref.read(teamCreationProvider.notifier).reset();
   }
 
+  /// Kullanıcının Açık/Koyu tema tercihini değiştirir ve günceller
   Future<void> toggleThemeMode(bool isDark) async {
     final currentUser = state.user;
     if (currentUser == null) return;
@@ -212,10 +246,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
+/// Uygulama genelinde oturum durumunu yöneten StateNotifierProvider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.watch(authRepositoryProvider), ref);
 });
 
+/// Kullanıcının seçtiği açık/koyu tema modunu döndüren sağlayıcı
 final themeModeProvider = Provider<ThemeMode>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) {
@@ -224,6 +260,11 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
   return user.themeMode == 'dark' ? ThemeMode.dark : ThemeMode.light;
 });
 
+// =============================================================================
+// 4. TAKIM KURMA VE KADRO FORMU MERKEZİ DURUMU (TEAM CREATION STATE & NOTIFIER)
+// =============================================================================
+
+/// Takım oluşturma ekranında seçilen il, ilçe, saha, tarih, saat, formasyon ve kadro bilgilerini tutan durum
 class TeamCreationFormState {
   final String? selectedProvince;
   final String? selectedDistrict;
@@ -247,6 +288,7 @@ class TeamCreationFormState {
     this.isSubmitting = false,
   });
 
+  /// Takımı kaydetme (Yeşil Tik) aktiflik koşulu
   bool get isReadyToSubmit =>
       selectedProvince != null &&
       selectedProvince!.isNotEmpty &&
@@ -259,6 +301,7 @@ class TeamCreationFormState {
       selectedTimeSlot!.isNotEmpty &&
       !isSubmitting;
 
+  /// Veritabanı formatında tarih anahtarı ('YYYY-MM-DD')
   String get formattedDateKey {
     if (selectedDate == null) return '';
     final y = selectedDate!.year.toString().padLeft(4, '0');
@@ -267,6 +310,7 @@ class TeamCreationFormState {
     return '$y-$m-$d';
   }
 
+  /// Kullanıcı arayüzünde gösterilecek Türkçe tarih formatı ('DD.MM.YYYY')
   String get formattedDateDisplay {
     if (selectedDate == null) return 'Tarih Seç';
     final d = selectedDate!.day.toString().padLeft(2, '0');
@@ -308,9 +352,11 @@ class TeamCreationFormState {
   }
 }
 
+/// Takım oluşturma formundaki kullanıcı seçimlerini yöneten kontrolcü
 class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
   TeamCreationNotifier() : super(const TeamCreationFormState());
 
+  /// İl seçildiğinde önceki ilçe ve halı saha seçimlerini sıfırlar
   void selectProvince(String province) {
     if (state.selectedProvince == province) return;
     state = state.copyWith(
@@ -320,6 +366,7 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     );
   }
 
+  /// İlçe seçildiğinde önceki halı saha seçimini sıfırlar
   void selectDistrict(String district) {
     if (state.selectedDistrict == district) return;
     state = state.copyWith(
@@ -328,19 +375,23 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     );
   }
 
+  /// Halı saha tesisini seçer
   void selectVenue(String venue) {
     state = state.copyWith(selectedVenue: venue);
   }
 
+  /// Maç tarihini seçer
   void selectDate(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     state = state.copyWith(selectedDate: normalized);
   }
 
+  /// Maç saat aralığını seçer
   void selectTimeSlot(String slot) {
     state = state.copyWith(selectedTimeSlot: slot);
   }
 
+  /// Saha dizilişini (Formasyon) değiştirir ve önceki kadroyu yeni dizilişe uyarlar
   void selectFormation(Formation formation) {
     if (state.selectedFormation == formation) return;
     final migratedLineup = formation.migrateLineup(state.lineup);
@@ -356,6 +407,7 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     );
   }
 
+  /// Belirli bir mevkiye oyuncu ismi atar veya kaldırır
   void setPlayerName(String positionKey, String name) {
     final updated = Map<String, String>.from(state.lineup);
     final trimmed = name.trim();
@@ -367,6 +419,7 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     state = state.copyWith(lineup: updated);
   }
 
+  /// Takım kaptanının sahadaki mevkisini belirler
   void setCaptainPosition(String positionKey, String captainName) {
     final updated = Map<String, String>.from(state.lineup);
     if (state.lineup[state.captainPositionKey] == captainName) {
@@ -379,10 +432,12 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     );
   }
 
+  /// Kaydetme işlemi sırasındaki yüklenme durumunu ayarlar
   void setSubmitting(bool value) {
     state = state.copyWith(isSubmitting: value);
   }
 
+  /// Formu oturum açan kullanıcı için sıfırlar ve kaptan olarak ilk mevkiye ekler
   void resetForUser(String captainName) {
     state = TeamCreationFormState(
       selectedFormation: Formation.threeTwoOne,
@@ -391,26 +446,35 @@ class TeamCreationNotifier extends StateNotifier<TeamCreationFormState> {
     );
   }
 
+  /// Formu tamamen başlangıç durumuna sıfırlar
   void reset() {
     state = const TeamCreationFormState();
   }
 }
 
+/// Takım kurma durumunu yöneten StateNotifierProvider
 final teamCreationProvider =
     StateNotifierProvider<TeamCreationNotifier, TeamCreationFormState>((ref) {
   return TeamCreationNotifier();
 });
 
+// =============================================================================
+// 5. KONUM, RANDEVU, BİLDİRİM VE SOHBET VERİ SAĞLAYICILARI (FUTURE PROVIDERS)
+// =============================================================================
+
+/// 81 ilin listesini asenkron getiren sağlayıcı
 final provincesProvider = FutureProvider<List<String>>((ref) async {
   return ref.watch(locationRepositoryProvider).getProvinces();
 });
 
+/// Seçilen ile bağlı ilçelerin listesini getiren sağlayıcı
 final districtsProvider =
     FutureProvider.family<List<String>, String>((ref, province) async {
   if (province.isEmpty) return [];
   return ref.watch(locationRepositoryProvider).getDistricts(province);
 });
 
+/// Seçilen il ve ilçedeki halı sahaların listesini getiren sağlayıcı
 final venuesProvider = FutureProvider.family<List<String>,
     ({String province, String district})>((ref, params) async {
   if (params.province.isEmpty || params.district.isEmpty) return [];
@@ -420,12 +484,15 @@ final venuesProvider = FutureProvider.family<List<String>,
       );
 });
 
+/// Veri listelerini (Randevular, Bildirimler vb.) yenilemek için kullanılan sayaç sağlayıcı
 final dataRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
+/// Tüm bağlı sağlayıcıların verilerini tazeleyen tetikleyici yardımcı fonksiyon
 void triggerGlobalRefresh(WidgetRef ref) {
   ref.read(dataRefreshTriggerProvider.notifier).state++;
 }
 
+/// Kullanıcının kaptan olduğu veya oyuncu olarak katıldığı maç randevularını getiren sağlayıcı
 final userAppointmentsProvider = FutureProvider<List<TeamModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
   final user = ref.watch(authProvider).user;
@@ -433,6 +500,7 @@ final userAppointmentsProvider = FutureProvider<List<TeamModel>>((ref) async {
   return ref.watch(teamRepositoryProvider).getUserAppointments(user.id);
 });
 
+/// Kaptanın oyuncu daveti gönderebileceği aktif takımlarını getiren sağlayıcı
 final captainTeamsProvider = FutureProvider<List<TeamModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
   final user = ref.watch(authProvider).user;
@@ -440,6 +508,7 @@ final captainTeamsProvider = FutureProvider<List<TeamModel>>((ref) async {
   return ref.watch(teamRepositoryProvider).getCaptainTeams(user.id);
 });
 
+/// Kullanıcının üyesi olduğu ve sohbet edebileceği takımları getiren sağlayıcı
 final userChatTeamsProvider = FutureProvider<List<TeamModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
   final user = ref.watch(authProvider).user;
@@ -447,6 +516,7 @@ final userChatTeamsProvider = FutureProvider<List<TeamModel>>((ref) async {
   return ref.watch(teamRepositoryProvider).getUserChatTeams(user.id);
 });
 
+/// Takıma davet edilebilecek diğer oyuncuların listesini getiren sağlayıcı
 final suggestedPlayersProvider = FutureProvider<List<UserModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
   final user = ref.watch(authProvider).user;
@@ -454,6 +524,7 @@ final suggestedPlayersProvider = FutureProvider<List<UserModel>>((ref) async {
   return ref.watch(authRepositoryProvider).getSuggestedPlayers(user.id);
 });
 
+/// Kullanıcıya gelen bildirimlerin listesini getiren sağlayıcı
 final userNotificationsProvider =
     FutureProvider<List<NotificationModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
@@ -462,6 +533,7 @@ final userNotificationsProvider =
   return ref.watch(notificationRepositoryProvider).getUserNotifications(user.id);
 });
 
+/// Okunmamış bildirim adedini hesaplayan sağlayıcı
 final unreadNotificationCountProvider = FutureProvider<int>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
   final user = ref.watch(authProvider).user;
@@ -469,6 +541,7 @@ final unreadNotificationCountProvider = FutureProvider<int>((ref) async {
   return ref.watch(notificationRepositoryProvider).getUnreadCount(user.id);
 });
 
+/// Kullanıcıya gelen maç davetlerini getiren sağlayıcı
 final incomingInvitationsProvider =
     FutureProvider<List<InvitationModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
@@ -479,6 +552,7 @@ final incomingInvitationsProvider =
       .getIncomingInvitations(user.id);
 });
 
+/// Kullanıcının diğer oyunculara gönderdiği davetleri getiren sağlayıcı
 final outgoingInvitationsProvider =
     FutureProvider<List<InvitationModel>>((ref) async {
   ref.watch(dataRefreshTriggerProvider);
@@ -489,6 +563,7 @@ final outgoingInvitationsProvider =
       .getOutgoingInvitations(user.id);
 });
 
+/// Belirli bir takımın sohbet mesajlarını getiren sağlayıcı
 final teamMessagesProvider =
     FutureProvider.family<List<MessageModel>, String>((ref, teamId) async {
   ref.watch(dataRefreshTriggerProvider);

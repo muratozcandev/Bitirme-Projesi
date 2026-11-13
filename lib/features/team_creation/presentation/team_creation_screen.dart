@@ -10,6 +10,8 @@ import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/notification_icon.dart';
 import 'widgets/football_pitch_widget.dart';
 
+/// İl, ilçe, halı saha, tarih, saat aralığı ve saha dizilişi seçimlerini yaptıran;
+/// taktik tahtası üzerinden kadroyu düzenleyip maçı kaydeden ana takım kurma ekranı.
 class TeamCreationScreen extends ConsumerStatefulWidget {
   const TeamCreationScreen({super.key});
 
@@ -30,6 +32,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     });
   }
 
+  /// İl, ilçe ve halı saha listelerini filtrelemeli ve aranabilir alt sayfa (bottom sheet) olarak açar.
   Future<void> _showSearchablePicker({
     required String title,
     required List<String> items,
@@ -158,6 +161,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// 81 il listesini açarak kullanıcının il seçmesini sağlar.
   Future<void> _handleProvinceSelect() async {
     final provinces = await ref.read(provincesProvider.future);
     if (!mounted) return;
@@ -172,6 +176,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// Seçili ile bağlı ilçe listesini açarak kullanıcının ilçe seçmesini sağlar.
   Future<void> _handleDistrictSelect() async {
     final province = ref.read(teamCreationProvider).selectedProvince;
     if (province == null || province.isEmpty) {
@@ -197,6 +202,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// Seçili il ve ilçedeki halı sahaları listeler ve tesis seçtirir.
   Future<void> _handleVenueSelect() async {
     final form = ref.read(teamCreationProvider);
     if (form.selectedProvince == null || form.selectedDistrict == null) {
@@ -229,6 +235,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// Tarih seçiciyi açar; geçmiş tarihlerin seçilmesini engeller.
   Future<void> _handleDateSelect() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -249,6 +256,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     }
   }
 
+  /// 24 saatlik 1'er saatlik maç başlama ve bitiş slotlarını ızgara halinde sunar.
   Future<void> _handleTimeSelect() async {
     final slots = AppConstants.timeSlots;
     final current = ref.read(teamCreationProvider).selectedTimeSlot;
@@ -351,6 +359,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// 7v7 taktik dizilişlerini (2-3-1, 3-2-1 vb.) açıklama ve oyuncu dağılımlarıyla seçtirir.
   Future<void> _handleFormationSelect() async {
     final current = ref.read(teamCreationProvider).selectedFormation;
     await showModalBottomSheet<void>(
@@ -440,6 +449,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// Sahadaki bir mevkii yuvasına tıklandığında oyuncu adı girme veya kaptan atama iletişim kutusunu açar.
   Future<void> _handlePositionTap(PlayerPositionSlot slot) async {
     final form = ref.read(teamCreationProvider);
     final user = ref.read(authProvider).user;
@@ -522,6 +532,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
     );
   }
 
+  /// Tüm form seçimlerini denetler, takımı ve maç randevusunu kaydeder, Randevularım ekranına yönlendirir.
   Future<void> _handleSaveTeam() async {
     final form = ref.read(teamCreationProvider);
     final user = ref.read(authProvider).user;
@@ -621,6 +632,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Üst seçim butonları: İl, İlçe, Halı Saha, Tarih, Saat
                   Row(
                     children: [
                       Expanded(
@@ -683,6 +695,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Diziliş seçici kartı ve takımı kaydet butonu
                   Row(
                     children: [
                       Expanded(
@@ -783,6 +796,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // İnteraktif taktik sahası görsel bileşeni
                   FootballPitchWidget(
                     formation: form.selectedFormation,
                     lineup: form.lineup,
@@ -807,6 +821,7 @@ class _TeamCreationScreenState extends ConsumerState<TeamCreationScreen> {
   }
 }
 
+/// Ekranın üst kısmında il, ilçe, saha, tarih ve saat seçimlerini temsil eden kutu buton.
 class _SelectionTopButton extends StatelessWidget {
   final IconData icon;
   final String title;

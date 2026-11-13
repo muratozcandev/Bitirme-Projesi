@@ -6,6 +6,8 @@ import '../../../app/theme/app_theme.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/state_widgets.dart';
 
+/// Takım üyelerinin maç öncesi veya sonrası mesajlaşabildiği,
+/// gerçek zamanlı mesaj akışı ve mesaj yazma alanı sunan sohbet odası ekranı.
 class TeamChatRoomScreen extends ConsumerStatefulWidget {
   final String teamId;
 
@@ -30,6 +32,7 @@ class _TeamChatRoomScreenState extends ConsumerState<TeamChatRoomScreen> {
     super.dispose();
   }
 
+  /// Yazılan mesajı takıma gönderir, listeyi tazeler ve mesaj listesini en aşağıya kaydırır.
   Future<void> _handleSend() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
@@ -90,6 +93,7 @@ class _TeamChatRoomScreenState extends ConsumerState<TeamChatRoomScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Mesaj geçmişi listesi
             Expanded(
               child: messagesAsync.when(
                 loading: () =>
@@ -116,13 +120,14 @@ class _TeamChatRoomScreenState extends ConsumerState<TeamChatRoomScreen> {
                       final msg = messages[index];
                       final isMe = msg.senderId == currentUser?.id;
 
+                      // Kullanıcının kendi mesajı sağda, diğer üyelerin mesajı solda gösterilir
                       return Align(
                         alignment:
                             isMe ? Alignment.centerRight : Alignment.centerLeft,
                         child: Container(
                           constraints: BoxConstraints(
                             maxWidth:
-                                MediaQuery.of(context).size.width * 0.78,
+                              MediaQuery.of(context).size.width * 0.78,
                           ),
                           margin: const EdgeInsets.symmetric(vertical: 5),
                           padding: const EdgeInsets.symmetric(
@@ -184,6 +189,8 @@ class _TeamChatRoomScreenState extends ConsumerState<TeamChatRoomScreen> {
                 },
               ),
             ),
+
+            // Mesaj giriş alanı ve gönder butonu
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
               decoration: BoxDecoration(
@@ -240,6 +247,7 @@ class _TeamChatRoomScreenState extends ConsumerState<TeamChatRoomScreen> {
     );
   }
 
+  /// Mesaj oluşturulma zamanını gün.ay saat:dakika formatında biçimlendirir.
   String _formatTime(DateTime dt) {
     final d = dt.day.toString().padLeft(2, '0');
     final m = dt.month.toString().padLeft(2, '0');

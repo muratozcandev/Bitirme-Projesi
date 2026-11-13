@@ -11,6 +11,8 @@ import '../../../shared/models/consent_model.dart';
 import '../../../shared/models/user_model.dart';
 import '../domain/auth_repository.dart';
 
+/// SQLite veritabanını kullanarak çevrimdışı/yerel ortamda kullanıcı kaydı,
+/// şifreleme ile giriş doğrulama, yasal sözleşme onayı ve profil yönetimini üstlenen sınıf.
 class LocalAuthRepository implements AuthRepository {
   final AppDatabase appDatabase;
   final SharedPreferences prefs;
@@ -21,6 +23,7 @@ class LocalAuthRepository implements AuthRepository {
     required this.prefs,
   });
 
+  /// SharedPreferences üzerinde saklanan aktif kullanıcı kimliği ile oturum açmış kullanıcıyı döndürür.
   @override
   Future<UserModel?> getCurrentUser() async {
     final activeId = prefs.getString(AppConstants.prefActiveUserIdKey);
@@ -30,6 +33,7 @@ class LocalAuthRepository implements AuthRepository {
     return getUserById(activeId);
   }
 
+  /// Veritabanından kullanıcı profilini çeker ve onaylanmış yasal sözleşmelerini modele ekler.
   @override
   Future<UserModel?> getUserById(String userId) async {
     final db = await appDatabase.database;
@@ -44,6 +48,7 @@ class LocalAuthRepository implements AuthRepository {
     return _attachConsents(db, baseUser);
   }
 
+  /// Kullanıcı modeli üzerine consents tablosundaki onay durumlarını iliştirir.
   Future<UserModel> _attachConsents(
     dynamic db,
     UserModel user,
@@ -62,6 +67,7 @@ class LocalAuthRepository implements AuthRepository {
     );
   }
 
+  /// E-posta veya telefon ile eşleşen kullanıcıyı bulur, SHA-256 tuzlu şifresini doğrular.
   @override
   Future<UserModel> login({
     required String identifier,
@@ -111,6 +117,7 @@ class LocalAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Yeni kullanıcıyı ve verdiği sözleşme onaylarını yerel SQLite veritabanına atomik transaction ile kaydeder.
   @override
   Future<UserModel> register({
     required String firstName,
@@ -218,11 +225,13 @@ class LocalAuthRepository implements AuthRepository {
     return user;
   }
 
+  /// Aktif oturum anahtarını SharedPreferences'tan silerek oturumu kapatır.
   @override
   Future<void> logout() async {
     await prefs.remove(AppConstants.prefActiveUserIdKey);
   }
 
+  /// Kullanıcının tema ayarını SQLite tablosunda günceller.
   @override
   Future<UserModel> updateThemeMode({
     required String userId,
@@ -242,6 +251,7 @@ class LocalAuthRepository implements AuthRepository {
     return updated;
   }
 
+  /// Aktif kullanıcı haricindeki diğer kayıtlı oyuncuları SQLite'tan listeler.
   @override
   Future<List<UserModel>> getSuggestedPlayers(String currentUserId) async {
     final db = await appDatabase.database;

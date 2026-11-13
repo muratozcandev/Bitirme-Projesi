@@ -1,11 +1,15 @@
 // Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni içeriklerini barındırır.
 
+/// Uygulama kaydı sırasında kullanıcının onayına sunulan Kullanıcı Sözleşmesi
+/// ve KVKK Aydınlatma Metni metinlerini ve başlıklarını içeren sabit veri sınıfı.
 class LegalTexts {
   LegalTexts._();
 
+  // Yasal metin başlıkları
   static const String userAgreementTitle = '7v7 Kullanıcı Sözleşmesi';
   static const String kvkkTitle = 'KVKK Aydınlatma Metni';
 
+  /// 7v7 Halı Saha Maç Organizasyon Uygulaması Kullanıcı Sözleşmesi metni.
   static const String userAgreementContent = '''
 7v7 HALISHA MAÇ ORGANİZASYON UYGULAMASI KULLANICI SÖZLEŞMESİ (ÖRNEK TASLAK METİN)
 
@@ -32,6 +36,7 @@ class LegalTexts {
 Kullanıcı, kayıt ekranındaki "Sözleşmeyi okudum ve anladım" kutucuğunu işaretleyerek işbu sözleşme hükümlerini okuduğunu ve kabul ettiğini beyan eder.
 ''';
 
+  /// 6698 Sayılı Kişisel Verilerin Korunması Kanunu Aydınlatma Metni.
   static const String kvkkContent = '''
 6698 SAYILI KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) KAPSAMINDA AYDINLATMA METNİ (ÖRNEK TASLAK METİN)
 

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 import '../models/formation.dart';
 
+/// Halı saha taktik tahtası üzerinde her bir mevkii yuvasını (kaleci, defans, orta saha, forvet)
+/// temsil eden, oyuncu atanmışlık durumuna veya kaptanlığa göre renk ve rozet gösteren buton.
 class PlayerPositionButton extends StatelessWidget {
   final PlayerPositionSlot slot;
   final String? playerName;
@@ -23,6 +25,7 @@ class PlayerPositionButton extends StatelessWidget {
     final hasPlayer = playerName != null && playerName!.trim().isNotEmpty;
     final isGk = slot.line == PositionLine.goalkeeper;
 
+    // Rol ve mevkiiye göre forma arka plan rengini belirleme
     final Color jerseyColor;
     if (isCaptain) {
       jerseyColor = AppColors.goldAccent;
@@ -63,6 +66,7 @@ class PlayerPositionButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Forma ikonu ve kaptanlık 'K' rozeti
               Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
@@ -104,6 +108,8 @@ class PlayerPositionButton extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 3),
+
+              // Mevki etiketi ve oyuncu adı (veya Boş)
               Text(
                 slot.label,
                 maxLines: 1,

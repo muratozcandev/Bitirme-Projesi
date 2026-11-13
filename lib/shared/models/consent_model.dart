@@ -1,5 +1,7 @@
 // Kullanıcının onayladığı yasal sözleşme kayıtlarını temsil eden veri modelidir.
 
+/// Kullanıcı Sözleşmesi ve KVKK metinlerinin kullanıcı tarafından ne zaman,
+/// hangi sürümle onaylandığını SQLite üzerinde saklayan veri modeli.
 class ConsentModel {
   final String id;
   final String userId;
@@ -17,6 +19,7 @@ class ConsentModel {
     required this.acceptedAt,
   });
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -28,6 +31,7 @@ class ConsentModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory ConsentModel.fromMap(Map<String, dynamic> map) {
     return ConsentModel(
       id: map['id'] as String,

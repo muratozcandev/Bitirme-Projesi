@@ -1,5 +1,6 @@
 // Bir takımdaki oyuncunun mevki ve üyelik bilgilerini temsil eden veri modelidir.
 
+/// Bir takımın kadrosundaki belirli bir mevkiye (Örn: 'GK_1', 'FWD_1') atanmış oyuncuyu temsil eden model.
 class TeamMemberModel {
   final String id;
   final String teamId;
@@ -19,6 +20,7 @@ class TeamMemberModel {
     required this.joinedAt,
   });
 
+  /// Rol koduna karşılık gelen Türkçe rol başlığı (Kaptan, Oyuncu vb.)
   String get roleLabel {
     switch (role) {
       case 'captain':
@@ -30,6 +32,7 @@ class TeamMemberModel {
     }
   }
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -42,6 +45,7 @@ class TeamMemberModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory TeamMemberModel.fromMap(Map<String, dynamic> map) {
     return TeamMemberModel(
       id: map['id'] as String,

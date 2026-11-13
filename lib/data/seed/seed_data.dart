@@ -3,11 +3,15 @@
 import '../../core/utils/password_hasher.dart';
 import '../../shared/models/user_model.dart';
 
+/// Test ortamında kullanılmak üzere hazır kullanıcıları ve
+/// her il/ilçe için deterministik halı saha listesi üreten tohumlama sınıfı.
 class SeedData {
   SeedData._();
 
+  // Tohum kullanıcılar için sabit başlangıç tarihi
   static final DateTime _seedTime = DateTime.utc(2026, 1, 1, 12, 0);
 
+  /// SQLite veritabanına aktarılan 10 adet hazır futbolcu profili
   static List<UserModel> get predefinedUsers => [
         UserModel(
           id: 'seed_user_1',
@@ -111,6 +115,7 @@ class SeedData {
         ),
       ];
 
+  // Saha ismi son ekleri
   static const List<String> _venueSuffixes = [
     'Arena 7v7 Halı Saha (Test)',
     'Yıldızlar Spor Kompleksi (Test)',
@@ -120,6 +125,7 @@ class SeedData {
     'Santra Halı Saha & Sosyal Tesis (Test)',
   ];
 
+  /// Seçilen il ve ilçeye göre tutarlı (deterministik) halı saha isimleri üretir
   static List<String> generateDeterministicVenues(String province, String district) {
     final hash = (province.hashCode ^ district.hashCode).abs();
     final count = 3 + (hash % 3);

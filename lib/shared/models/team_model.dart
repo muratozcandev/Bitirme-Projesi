@@ -3,6 +3,8 @@
 import 'formation.dart';
 import 'team_member_model.dart';
 
+/// Kurulan bir 7v7 takımının kaptan, saha, tarih/saat, taktiksel diziliş
+/// ve 7 kişilik oyuncu kadrosunu kapsayan ana veri modeli.
 class TeamModel {
   final String id;
   final String captainId;
@@ -34,8 +36,10 @@ class TeamModel {
     this.members = const [],
   });
 
+  /// Maç başlangıç ve bitiş saatini birleşik formatta döndürür (Örn: '20.00 - 21.00')
   String get timeSlot => '$startTime - $endTime';
 
+  /// 'YYYY-MM-DD' formatındaki maç tarihini 'DD.MM.YYYY' görsel formatına dönüştürür
   String get formattedDate {
     final parts = matchDate.split('-');
     if (parts.length == 3) {
@@ -44,6 +48,7 @@ class TeamModel {
     return matchDate;
   }
 
+  /// Takım dizilişinde henüz oyuncu atanmamış boş mevki yuvalarının listesini hesaplar
   List<PlayerPositionSlot> get emptyPositions {
     final occupiedKeys = members
         .where((m) => m.displayName.trim().isNotEmpty)
@@ -54,6 +59,7 @@ class TeamModel {
         .toList();
   }
 
+  /// Mevcut modelin belirli alanlarını güncelleyerek yeni bir kopyasını üretir
   TeamModel copyWith({
     String? id,
     String? captainId,
@@ -86,6 +92,7 @@ class TeamModel {
     );
   }
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -102,6 +109,7 @@ class TeamModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory TeamModel.fromMap(
     Map<String, dynamic> map, {
     String captainName = '',

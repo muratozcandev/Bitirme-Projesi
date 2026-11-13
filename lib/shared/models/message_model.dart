@@ -1,5 +1,6 @@
 // Takım sohbetlerinde gönderilen mesajları temsil eden veri modelidir.
 
+/// Takım üyelerinin sohbet odasında paylaştığı metin mesajlarını ve gönderen bilgilerini tutan model.
 class MessageModel {
   final String id;
   final String teamId;
@@ -17,6 +18,7 @@ class MessageModel {
     required this.createdAt,
   });
 
+  /// Modeli SQLite veritabanına eklemek için Map yapısına dönüştürür
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -27,6 +29,7 @@ class MessageModel {
     };
   }
 
+  /// SQLite sorgu sonucundan (Map) model örneği oluşturur
   factory MessageModel.fromMap(
     Map<String, dynamic> map, {
     String senderName = '',

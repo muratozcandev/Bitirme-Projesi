@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../seed/seed_data.dart';
 
+/// Cihaz yerelinde çalışan SQLite ilişkisel veritabanı singleton yöneticisi.
+/// Kullanıcılar, onaylar, takımlar, kadrolar, randevular, mesajlar ve bildirimler için tabloları kurar.
 class AppDatabase {
   static AppDatabase? _instance;
   Database? _db;
@@ -13,15 +15,18 @@ class AppDatabase {
 
   AppDatabase._({this.customPath});
 
+  /// Uygulama genelinde paylaşılan tekil (singleton) veritabanı örneği
   static AppDatabase get instance {
     _instance ??= AppDatabase._();
     return _instance!;
   }
 
+  /// Birim testler için bellekte (in-memory) izole veritabanı oluşturan yapıcı
   factory AppDatabase.forTesting(String dbName) {
     return AppDatabase._(customPath: inMemoryDatabasePath);
   }
 
+  /// Aktif veritabanı bağlantısını döndürür, kapalıysa veya yoksa başlatır
   Future<Database> get database async {
     if (_db != null && _db!.isOpen) {
       return _db!;
@@ -30,6 +35,7 @@ class AppDatabase {
     return _db!;
   }
 
+  /// Platform türüne göre (Masaüstü için FFI, Mobil için yerel sqflite) veritabanını ilklendirir
   Future<Database> _initDatabase() async {
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       sqfliteFfiInit();
@@ -48,10 +54,12 @@ class AppDatabase {
       dbPath,
       version: 1,
       onCreate: (db, version) async {
+        // Tabloları oluştur ve başlangıç futbolcu verilerini tohumla
         await _createTables(db);
         await _seedInitialUsers(db);
       },
       onOpen: (db) async {
+        // Veritabanı her açıldığında eksik tohum verileri varsa tamamla
         await _seedInitialUsers(db);
       },
     );
@@ -59,7 +67,9 @@ class AppDatabase {
     return db;
   }
 
+  /// SQLite tablolarının DDL (Data Definition Language) şemalarını çalıştırır
   Future<void> _createTables(Database db) async {
+    // 1. Kullanıcı hesapları tablosu
     await db.execute('''
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
@@ -74,6 +84,7 @@ class AppDatabase {
       )
     ''');
 
+    // 2. Kullanıcı Sözleşmesi ve KVKK onay kayıtları tablosu
     await db.execute('''
       CREATE TABLE consents (
         id TEXT PRIMARY KEY,
@@ -85,6 +96,7 @@ class AppDatabase {
       )
     ''');
 
+    // 3. 7v7 Maç takımları tablosu
     await db.execute('''
       CREATE TABLE teams (
         id TEXT PRIMARY KEY,
@@ -101,6 +113,7 @@ class AppDatabase {
       )
     ''');
 
+    // 4. Takım kadro mevkileri ve oyuncu eşleşmeleri tablosu
     await db.execute('''
       CREATE TABLE team_members (
         id TEXT PRIMARY KEY,
@@ -113,6 +126,7 @@ class AppDatabase {
       )
     ''');
 
+    // 5. Maç organizasyon detayları tablosu
     await db.execute('''
       CREATE TABLE matches (
         id TEXT PRIMARY KEY,
@@ -126,6 +140,7 @@ class AppDatabase {
       )
     ''');
 
+    // 6. Oyuncu mevki davetleri tablosu
     await db.execute('''
       CREATE TABLE invitations (
         id TEXT PRIMARY KEY,
@@ -139,6 +154,7 @@ class AppDatabase {
       )
     ''');
 
+    // 7. Takım içi anlık sohbet mesajları tablosu
     await db.execute('''
       CREATE TABLE messages (
         id TEXT PRIMARY KEY,
@@ -149,6 +165,7 @@ class AppDatabase {
       )
     ''');
 
+    // 8. Kullanıcı bildirimleri tablosu
     await db.execute('''
       CREATE TABLE notifications (
         id TEXT PRIMARY KEY,
@@ -164,6 +181,7 @@ class AppDatabase {
       )
     ''');
 
+    // 9. Kullanıcının kendi listesinden sildiği maç randevuları tablosu
     await db.execute('''
       CREATE TABLE dismissed_appointments (
         userId TEXT NOT NULL,
@@ -173,6 +191,7 @@ class AppDatabase {
       )
     ''');
 
+    // 10. Önceden yüklenen halı saha mekan önbelleği tablosu
     await db.execute('''
       CREATE TABLE venues_cache (
         province TEXT NOT NULL,
@@ -183,6 +202,7 @@ class AppDatabase {
     ''');
   }
 
+  /// Başlangıçta test için gerekli 10 örnek futbolcu kullanıcısını SQLite tablosuna ekler
   Future<void> _seedInitialUsers(Database db) async {
     final batch = db.batch();
     for (final user in SeedData.predefinedUsers) {
@@ -195,6 +215,7 @@ class AppDatabase {
     await batch.commit(noResult: true);
   }
 
+  /// Veritabanı bağlantısını kapatır ve bellek referansını temizler
   Future<void> close() async {
     if (_db != null && _db!.isOpen) {
       await _db!.close();

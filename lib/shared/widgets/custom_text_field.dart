@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+/// Giriş ve kayıt formlarında standart kenarlık, ikon, doğrulama (validation)
+/// ve şifre gizleme özelliklerini sağlayan metin giriş alanı bileşeni.
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;

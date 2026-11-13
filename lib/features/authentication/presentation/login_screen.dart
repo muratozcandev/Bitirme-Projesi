@@ -10,6 +10,8 @@ import '../../../shared/widgets/app_logo_widget.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 
+/// Kullanıcıların e-posta ve şifre ile giriş yapmasını sağlayan,
+/// doğrulama kontrolleri ve kayıt ekranına geçiş bağlantısı içeren ekran.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -30,6 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Form alanlarını doğrular, authNotifier aracılığıyla giriş yapar ve başarılı olursa ana sayfaya yönlendirir.
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -71,12 +74,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Uygulama logosu ve başlığı
                     const AppLogoWidget(
                       size: 96,
                       showTitle: true,
                       showSubtitle: true,
                     ),
                     const SizedBox(height: 28),
+
+                    // Giriş formu kartı
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -97,6 +103,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 18),
+
+                            // E-posta giriş alanı
                             CustomTextField(
                               key: const Key('login_identifier_field'),
                               controller: _identifierController,
@@ -118,6 +126,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               },
                             ),
                             const SizedBox(height: 14),
+
+                            // Şifre giriş alanı ve görünürlük butonu
                             CustomTextField(
                               key: const Key('login_password_field'),
                               controller: _passwordController,
@@ -151,6 +161,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
+
+                            // Giriş yap butonu
                             CustomButton(
                               key: const Key('login_submit_button'),
                               label: 'Giriş Yap',
@@ -163,6 +175,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Kayıt ekranına yönlendirme bağlantısı
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
